@@ -1,0 +1,8 @@
+{ 
+    "BP1": "DEFAULT_CONFIG", 
+    "BP1.AD.BP.COM": "DEFAULT_CONFIG", 
+    "CD1": "CD1_CONFIG", 
+    "CD1.BP.COM": "CD1_CONFIG", 
+    "CD2": "CD2_CONFIG", 
+    "CD2.BP.COM": "CD2_CONFIG"
+}
