@@ -1,21 +1,14 @@
 import sys
-import array
 import binascii
-import ssl
-import pickle
 import base64
-from ldap3 import Server, Connection, ALL, SAFE_SYNC, ALL_ATTRIBUTES, DSA, SUBTREE, NO_ATTRIBUTES, ALL_OPERATIONAL_ATTRIBUTES
+from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, SUBTREE, NO_ATTRIBUTES, ALL_OPERATIONAL_ATTRIBUTES
 from ldap3.core.exceptions import LDAPSocketOpenError, LDAPReferralError, LDAPException
-from Zephyr_Directory_Ldap_Python.Classes import LdapConfig, LdapRequest, LdapResponse, LdapObject, LdapAttributeTypes
+from Zephyr_Directory_Ldap_Python.Classes import LdapConfig, LdapRequest, LdapResponse, LdapAttributeTypes
 from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import SearchScopeType
 from Zephyr_Directory_Ldap_Python.Utilites.JsonTools import JsonTools
 from Zephyr_Directory_Ldap_Python.Utilites.SidUtils import SidUtils
-from cryptography import x509
-from Zephyr_Crypto_Python.Rijndael import Rijndael
 from Zephyr_Directory_Ldap_Python.KnownAttributes import KnownAttributes
 import time
-import conversion
-import json
 import uuid
 
 class Options:
@@ -186,9 +179,17 @@ class LDapServer:
                     elif attrType == LdapAttributeTypes.GuidArray or attrType == "GuidArray":
                         print("HERE -> 4")
                         guid_list = []
-                        for i in attributes[key]:
-                            i = uuid.UUID(str(attribute)).hex
-                            guid_list.append(i)
+                        for i in attribute:
+                            if "encoded" in i:
+                                j = i["encoded"].encode()
+                                j = base64.b64decode(j)
+                                if sys.byteorder == "little":
+                                    guid_list.append(str(uuid.UUID(bytes_le=j)))
+                                else:
+                                    guid_list.append(str(uuid.UUID(bytes=j)))
+                            else:
+                                j = uuid.UUID(str(i)).hex
+                                guid_list.append(j)
                         attributes[key] = guid_list
                         print(attributes[key])
                     elif attrType == LdapAttributeTypes.Sid or attrType == "Sid":

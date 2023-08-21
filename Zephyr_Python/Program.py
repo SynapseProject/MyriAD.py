@@ -6,8 +6,7 @@ from Zephyr_Crypto_Python.Rijndael import Rijndael
 from Zephyr_Directory_Ldap_Python.Ldap_Server import LDapServer
 from Zephyr_Directory_Ldap_Python.Utilites.JsonTools import JsonTools
 from Zephyr_Directory_Ldap_Python.Utilites.LdapUtils import LdapUtils
-from Zephyr_Directory_Ldap_Python.Utilites.SidUtils import SidUtils
-from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import LdapRequest, PingType, ObjectType
+from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import LdapRequest, PingType
 from Zephyr_Directory_Ldap_Python.Classes.LdapResponse import LdapResponse
 
 import json
@@ -16,7 +15,7 @@ import io
 import time
 import uuid
 
-_FILEPATH  = "Zephyr.Directory-1.1.23165.0/Zephyr_Python/Zephyr_Directory_Test/TestFiles/myriad.json"
+_FILEPATH  = "Zephyr_Python/Zephyr_Directory_Test/TestFiles/myriad.json"
 # Cryptography
 # os.environ['IV'] = '293464BAFE31A0B7'
 # os.environ['PASSPHRASE'] = 'mYr1Ad22p4SSPHr4s'
