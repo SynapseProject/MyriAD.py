@@ -47,12 +47,6 @@ class LDapServer:
 
         self.conn.socket = self._USESSL
         print(self._SERVER)
-        
-    # def __str__(self):
-    #     return json.dumps(dict(self), ensure_ascii=False)
-
-    # def __repr__(self):
-    #     return self.__str__()
 
     def ToString(self):
         if self._USESSL:
@@ -180,16 +174,20 @@ class LDapServer:
                         print("HERE -> 4")
                         guid_list = []
                         for i in attribute:
-                            if "encoded" in i:
-                                j = i["encoded"].encode()
-                                j = base64.b64decode(j)
-                                if sys.byteorder == "little":
-                                    guid_list.append(str(uuid.UUID(bytes_le=j)))
-                                else:
-                                    guid_list.append(str(uuid.UUID(bytes=j)))
+                            if type(i) == dict:
+                                for j in i:
+                                    print(i[j])
+                                    if "encoded" in i[j]:
+                                        print("HERE")
+                                        x = i[j]["encoded"].encode()
+                                        x = base64.b64decode(x)
+                                        if sys.byteorder == "little":
+                                            guid_list.append(str(uuid.UUID(bytes_le=x)))
+                                        else:
+                                            guid_list.append(str(uuid.UUID(bytes=x)))
                             else:
-                                j = uuid.UUID(str(i)).hex
-                                guid_list.append(j)
+                                print(i)
+                                guid_list.append(str(uuid.UUID(i)))
                         attributes[key] = guid_list
                         print(attributes[key])
                     elif attrType == LdapAttributeTypes.Sid or attrType == "Sid":
