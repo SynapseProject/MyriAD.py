@@ -8,7 +8,7 @@ from Zephyr_Directory_Ldap_Python.Utilites.JsonTools import JsonTools
 from Zephyr_Directory_Ldap_Python.Utilites.LdapUtils import LdapUtils
 from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import LdapRequest, PingType
 from Zephyr_Directory_Ldap_Python.Classes.LdapResponse import LdapResponse
-
+import base64
 import json
 import conversion
 import io
@@ -51,31 +51,6 @@ isPing = True if request.ping != None else False
 response = LdapResponse()
 # isPing = False
 
-# ans = request.searchValue[::-1].index('a')
-# index = len(request.searchValue) - ans -1
-# print(index, request.searchValue[index])
-
-# pattern = r"DC=([^,]+)"
-# parts = []
-# r = re.search(pattern,request.searchValue)
-# print(r.lastindex)
-
-# lst = ["Hi", "My", "Name", "is", "Lee"]
-# joined_str = ""
-# for i in lst:
-#     joined_str = joined_str + i
-
-# print(socket.gethostname())
-# print(request.Config().maxRetries)
-# print(request.Config().maxRetries)
-
-# g_zeros = uuid.UUID(int= 0)
-# print(g_zeros)
-# g = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
-# if g != g_zeros:
-#     print(g)
-# print("Here: {0}".format(g))S
-
 # sear = "S-1-5-1"
 # SidUtils.ConvertStringSidToBytes(sear)
 dnRegexString = "^\s*?(cn\s*=|ou\s*=|dc\s*=)"
@@ -83,6 +58,43 @@ dnRegexString = "^\s*?(cn\s*=|ou\s*=|dc\s*=)"
 print(request.searchValue)
 r2 = re.compile(dnRegexString, re.IGNORECASE)
 # print(r2.search(request.searchValue))
+dict1onary = [{"mS-DS-ConsistencyGuid": {"encoded": "MHF6AlWfJkW39dPxP3UN4w==","encoding": "base64"}},
+              {"msExchMailboxGuid": {"encoded": "E/okz1UBm0KNckxF0+BLUA==","encoding": "base64"}},
+              "027a71309f554526b7f5d3f13f750de3"
+            ]
+
+# print(dict1onary)
+guid_list = []
+# print(dict1onary["mS-DS-ConsistencyGuid"]["encoded"])
+# THIS IS FOR A DICT OF DICT
+# for i in dict1onary:
+#     print(dict1onary[i])
+#     if "encoded" in dict1onary[i]:
+#         print("HERE")
+#         x = dict1onary[i]["encoded"].encode()
+#         x = base64.b64decode(x)
+#         if sys.byteorder == "little":
+#             guid_list.append(str(uuid.UUID(bytes_le=x)))
+#         else:
+#             guid_list.append(str(uuid.UUID(bytes=x)))
+
+# THIS IS FOR A LIST OF DICT
+# for i in dict1onary:
+#     if type(i) == dict:
+#         for j in i:
+#             print(i[j])
+#             if "encoded" in i[j]:
+#                 print("HERE")
+#                 x = i[j]["encoded"].encode()
+#                 x = base64.b64decode(x)
+#                 if sys.byteorder == "little":
+#                     guid_list.append(str(uuid.UUID(bytes_le=x)))
+#                 else:
+#                     guid_list.append(str(uuid.UUID(bytes=x)))
+#     else:
+#         print(i)
+#         guid_list.append(str(uuid.UUID(i)))
+# print(guid_list)
 
 if request.Crypto().text != None:
     crypto = LdapUtils.ApplyDefaultandValidate(crypto=request.Crypto())
