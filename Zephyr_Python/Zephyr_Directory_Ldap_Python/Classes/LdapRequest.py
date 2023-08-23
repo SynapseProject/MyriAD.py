@@ -44,6 +44,7 @@ class LdapRequest():
         self.nextToken = data.get("nextToken") if data.get("nextToken") else None
         self.wildcardToken = data.get("wildcardSearch") if data.get("wildcardSearch") else None
         self.attributes = data.get("attributes") if data.get("attributes") else None
+        self.raise_exceptions = data.get("raise_exceptions") if data.get("raise_exceptions") else False
         self.config = data.get("config") if data.get("config") else None
         self.crypto = data.get("crypto") if data.get("crypto") else None
         self.ping = data.get("ping") if data.get("ping") else None

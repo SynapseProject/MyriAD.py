@@ -35,32 +35,18 @@ cryptography = Rijndael()
 JsonFile = JsonTools(_FILEPATH)
 # Figure out how to pass in a Json 
 Domain_MAPPINGS = os.environ["DOMAIN_MAPPINGS"]
-
-# encrypted_ = crypto.Encrypt("Plain Text", "MyPassPhrase", "MySaltValue", "MyInitVector1234")
-# print(encrypted_)
-# decrypted_ = crypto.Decrypt("+QDpKrDz3olRgoVQPBqOzg==", "MyPassPhrase", "MySaltValue", "MyInitVector1234")
-# print(decrypted_)
-
 data = JsonFile.Deserialize()
-# print(data["config"]["maxRetries"])
-# data2 = JsonFile.Deserialize(var=Domain_MAPPINGS)
-# print(type(data2))
 request = LdapRequest(data)
 # print(request.Config().maxRetries)
 isPing = True if request.ping != None else False
 response = LdapResponse()
-# isPing = False
-
-# sear = "S-1-5-1"
-# SidUtils.ConvertStringSidToBytes(sear)
 dnRegexString = "^\s*?(cn\s*=|ou\s*=|dc\s*=)"
-# r2 = re.compile(dnRegexString)S
 print(request.searchValue)
 r2 = re.compile(dnRegexString, re.IGNORECASE)
-# print(r2.search(request.searchValue))
 dict1onary = [{"mS-DS-ConsistencyGuid": {"encoded": "MHF6AlWfJkW39dPxP3UN4w==","encoding": "base64"}},
               {"msExchMailboxGuid": {"encoded": "E/okz1UBm0KNckxF0+BLUA==","encoding": "base64"}},
-              "027a71309f554526b7f5d3f13f750de3"
+              "027a71309f554526b7f5d3f13f750de3",
+              "cf24fa130155429b8d724c45d3e04b50"
             ]
 
 # print(dict1onary)
@@ -77,24 +63,6 @@ guid_list = []
 #             guid_list.append(str(uuid.UUID(bytes_le=x)))
 #         else:
 #             guid_list.append(str(uuid.UUID(bytes=x)))
-
-# THIS IS FOR A LIST OF DICT
-# for i in dict1onary:
-#     if type(i) == dict:
-#         for j in i:
-#             print(i[j])
-#             if "encoded" in i[j]:
-#                 print("HERE")
-#                 x = i[j]["encoded"].encode()
-#                 x = base64.b64decode(x)
-#                 if sys.byteorder == "little":
-#                     guid_list.append(str(uuid.UUID(bytes_le=x)))
-#                 else:
-#                     guid_list.append(str(uuid.UUID(bytes=x)))
-#     else:
-#         print(i)
-#         guid_list.append(str(uuid.UUID(i)))
-# print(guid_list)
 
 if request.Crypto().text != None:
     crypto = LdapUtils.ApplyDefaultandValidate(crypto=request.Crypto())
@@ -130,7 +98,6 @@ else:
         print("Attributes :" , request.attributes)
         response = ldap.Search(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
         ldap.Disconnect()
-        # print(result)
         print("Exiting Try Block")
     except Exception as e:
         print("error", e)

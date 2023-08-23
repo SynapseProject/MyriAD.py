@@ -80,16 +80,20 @@ class LDapServer:
     def Bind(self):
         self.conn.bind()
 
+    def CheckAttributes(self, attributes, flag, response):
+        attributes_ = []
+        error_attributes = []
+        for attribute in attributes:
+            if attribute in self.server.schema.attribute_types:
+                attributes_.append(attribute)
+            else:
+                error_attributes.append(attribute)
+        if flag and len(error_attributes) > 0:
+            response.message = f"Invalid Attribute(s) {', '.join(error_attributes)}"
+        return attributes_, response
+
     def AddValueWithUnknownType(self, rec, key, attribute):
         print("Entering AddValueWithUnknownType")
-        # try:
-        # print("In Try")
-        # values = list(attribute)
-        # if len(values) > 1:
-        #     rec[key] = values
-        # else:
-        #     rec[key] = values[0]
-        # except:
         print("oops something went wrong, get values from here")
         if type(attribute) == list:
             values = attribute
@@ -103,12 +107,8 @@ class LDapServer:
             rec[key] = str(values[0])
             print(rec[key])
 
-    def ParseResults(self, entries, request: LdapRequest):
-        # for i in self._RETURNTYPES.keys():
-        #     print(i)
+    def ParseResults(self, entries, response: LdapResponse):
         print("-------------")
-        # entries = JsonTools.Deserialize(entries)
-        response = LdapResponse()
         response.records = entries
 
         for record in response.records:
@@ -135,10 +135,6 @@ class LDapServer:
                             i = base64.b64decode(i)
                             print(i.hex())
                             attributes[key] = "0x"+i.hex()
-                        # i = binascii.hexlify(attribute.encode('utf8'))
-                        # i = i.decode()
-                        # print(i)
-                        # attributes[key] = "0x"+ i
                         else:
                             i = attribute.encode("ascii")
                             i = base64.b64decode(i)
@@ -146,6 +142,7 @@ class LDapServer:
                             attributes[key] = "0x"+i.hex()
                     elif attrType == LdapAttributeTypes.BytesArray or attrType == "BytesArray":
                         print("HERE -> 2")
+                        print(type(attribute))
                         strs = []
                         for b in attribute:
                             i = binascii.hexlify(b.encode('utf8'))
@@ -236,9 +233,6 @@ class LDapServer:
                         print(key, ': ', attribute)
                         # attributes[key] = str(attribute)
                         self.AddValueWithUnknownType(rec=attributes, key=key,attribute=attribute)
-                # print("Appending")
-                # response.records.append(rec)
-                # response.records = JsonTools().Deserialize(response.records)
             except LDAPReferralError as e:
                 print("------", e)
             except LDAPException as e:
@@ -247,11 +241,17 @@ class LDapServer:
         return response
     
     def toJson(self, response: LdapResponse):
-        if response.success == True:
+        # dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "message": str(response.message), "NexToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
+        if response.success == True and response.message == None:
             if response.nextToken != None:
                 dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "NexToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
             else:    
                 dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "totalRecords": response.totalRecords, "records": response.records}
+        elif response.success == True and response.message != None:
+            if response.nextToken != None:
+                dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "message": str(response.message), "NexToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
+            else:    
+                dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "message": str(response.message), "totalRecords": response.totalRecords, "records": response.records}
         else:
             dictionary = {"success": response.success, "server": response.server, "message": str(response.message)}
         return dictionary
@@ -278,16 +278,14 @@ class LDapServer:
             rootDSE = JsonTools().Deserialize(var=self.server.info.to_json())
             if request.searchBase == None:
                 request.searchBase = rootDSE['raw']['defaultNamingContext'][0]
-            
+            if attributes != None:
+                attributes,response = self.CheckAttributes(attributes, request.raise_exceptions, response)
             results = None
             options = Options(0,maxResults,3600,self._FOLLOWREFERRALS)
-
+            print("Attributes :" , attributes)
             while True:
-                # LOOK INTO THE MAX SEARCH VALUE ISSUE
-                # print(attributes == None)
                 maxPageSize = self._MAXPAGESIZE
                 maxSearchResults = 999999
-                # print(maxSearchResults, "<-----------")
                 if maxResults != None:
                     print("HERE: 1")
                     maxSearchResults = maxResults
@@ -296,7 +294,7 @@ class LDapServer:
                     maxPageSize = maxSearchResults-len(entries)
                 if request.present == True and attributes == None:
                     print("HERE 3")
-                    attributes = NO_ATTRIBUTES # or NO_ATTRIBUTES
+                    attributes = NO_ATTRIBUTES
                 if request.present == False:
                     print("HERE 4")
                     attributes = ALL_ATTRIBUTES
@@ -308,13 +306,7 @@ class LDapServer:
                 print("Starting Search")
                 self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
                 print("Got out of search")
-                # print(self.conn.response)
-                # print(self.conn.response_to_ldif())
-                # self.conn.response_to_json()
-                # results = JsonTools().Deserialize(self.conn.response_to_ldif(self.conn.result))
                 results = JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True))
-                # results = JsonTools().Deserialize(self.conn.entries)
-                # print(results)
                 try:
                     for i in results['entries']:
                         if i is not None:
@@ -331,8 +323,7 @@ class LDapServer:
                     break
                 print(len(entries), "/", maxResults )
             print("Out of While(True)")
-            # print(maxSearchResults)
-            response = self.ParseResults(entries, request)
+            response = self.ParseResults(entries, response)
             if nextTokenStr != None and len(nextTokenStr) > 0:
                 #COMEBACK HERE LATER
                 response.nextToken = f"{nextTokenStr}" # nextTokenStr
@@ -345,7 +336,6 @@ class LDapServer:
         print(response.totalRecords)
         print(response.nextToken)
         print("--------------")
-        time.sleep(5)
         response = self.toJson(response=response)
         return response
     
