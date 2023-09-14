@@ -1,5 +1,14 @@
 {
-    "crypto": {
-        "text": "HelloWorld"
+    "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))",
+    "attributes": [
+        "cn",
+        "dn",
+        "displayName",
+        "one",
+        "two",
+        "three"
+    ],
+    "config": {
+        "IgnoreWarnings": "false"
     }
 }

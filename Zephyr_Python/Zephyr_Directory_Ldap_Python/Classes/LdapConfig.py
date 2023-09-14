@@ -28,7 +28,8 @@ class LdapConfig():
             self.maxRetries = config.get("maxRetries") if config.get("maxRetries") != None else None
             self.maxPageSize = config.get("maxPageSize") if config.get("maxPageSize") else None
             self.followReferrals = config.get("followReferrals") if config.get("followReferrals") else False
-            self.returnTypes = config.get("returnTypes") if config.get("returnTypes") else {}
+            self.returnTypes = config.get("returnTypes") if config.get("returnTypes") else None
+            self.IgnoreWarnings = config.get("IgnoreWarnings") if config.get("IgnoreWarnings") else False
         else:
             self.server_name = None
             self.port = None
@@ -39,6 +40,7 @@ class LdapConfig():
             self.maxPageSize = None
             self.followReferrals = None
             self.returnTypes = None
+            self.IgnoreWarnings = None
     def Print(self):
         print(self.server_name, self.ssl, self.username)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
         print(self.password, self.port, self.maxRetries, self.maxPageSize)

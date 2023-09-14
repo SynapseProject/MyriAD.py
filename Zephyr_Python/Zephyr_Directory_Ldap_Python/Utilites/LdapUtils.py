@@ -12,9 +12,6 @@ from Zephyr_Directory_Ldap_Python.Utilites.JsonTools import JsonTools
 from Zephyr_Crypto_Python.Rijndael import Rijndael
 
 class LdapUtils():
-    # os.environ["IV"] = "293464BAFE31A0B7"
-    # os.environ['PASSPHRASE'] = 'mYr1Ad22p4SSPHr4s'
-    # os.environ['SALT'] = 'mYR4nd0MSaLtV1ue'
     def GetDomainShortName(searchVal: str):
         domain = None
         if searchVal != None:
@@ -25,11 +22,8 @@ class LdapUtils():
     
     def GetDomainNameFromUPN(searchVal: str):
         domain = None
-        # print(searchVal[index])
         if searchVal != None or searchVal != '':
             if '@' in searchVal:
-                # r = re.search(searchVal,'@')
-                # r.lastindex
                 last_instance2 =  searchVal[::-1].index('.')
                 last_instance = searchVal[::-1].index('@')
                 index = len(searchVal) - last_instance - 1
@@ -45,9 +39,7 @@ class LdapUtils():
 
 
     def GetConfigProfileFromMap(map, key):
-        # print(map, "=", key)
         config = LdapConfig()
-        # print(map["server"])
         if key != None:
             upKey = key.upper()
             if upKey in map:
@@ -89,6 +81,9 @@ class LdapUtils():
         if target.followReferrals == None:
             target.followReferrals = source.followReferrals
 
+        if target.IgnoreWarnings == None:
+            target.IgnoreWarnings = source.IgnoreWarnings
+            
         if target.returnTypes == None:
             target.returnTypes = source.returnTypes
 
@@ -100,13 +95,10 @@ class LdapUtils():
         return target
     
     def GetConfigProfile(request: LdapRequest):
-        #CHECK THE JSON DESERIALIZE FUNCON AND IMPLEMENT THE DEFAULT VALUE
-        # print(type(request.Config()))
         Config = LdapConfig()
         configMap = JsonTools().Deserialize(os.environ["DOMAIN_MAPPINGS"])
         print("Before:")
         request.Config().Print()
-        # print(configMap["BP1"], "=>", request.Config().maxRetries)
         if not request.Config().is_Null():
             print("HERE 1")
             LdapUtils.SetConfigValues(Config, request.Config())
@@ -116,13 +108,11 @@ class LdapUtils():
             if type(dmConfig) != dict:
                 print("HERE 2.A")
                 dmConfig = LdapUtils.GetConfigProfileFromMap(configMap, request.domain)
-                # print(dmConfig.server_name)
             if dmConfig == None:
                 print("HERE 2.B")
                 dmConfig = JsonTools().Deserialize(request.domain.upper())
             if dmConfig != None:
                 print("HERE 2.C")
-                # x = LdapUtils.SetConfigValues(Config, dmConfig)
                 LdapUtils.SetConfigValues(Config, dmConfig)
         elif configMap is not None:
             print("trying to find domain")
@@ -130,57 +120,44 @@ class LdapUtils():
                 print("Here 3")
                 domain = LdapUtils.GetDomainName(request.searchBase)
                 print(domain)
-                # domain = "BP1.AD.BP.COM"
                 sbConfig = LdapConfig()
                 sbConfig = LdapUtils.GetConfigProfileFromMap(configMap, domain)
                 sbConfig = LdapUtils.SetConfigValues(Config, sbConfig)
-                # request.domain = domain
             if request.searchBase == None or request.searchBase == "":
                 print("HERE 4")
                 domainKey = None
                 svConfig = LdapConfig()
-                # svConfig.Print()
                 if svConfig.is_Null:
                     print("HERE 4.A")
                     domainKey = LdapUtils.GetDomainShortName(request.searchValue)
-                    # print(domainKey)
                     svConfig = LdapUtils.GetConfigProfileFromMap(configMap, domainKey)
                     request.domain = domainKey
-                    # svConfig.Print()
                 if svConfig.is_Null():
                     print("HERE 4.B")
                     domainKey = LdapUtils.GetDomainNameFromUPN(request.searchValue)
-                    # print(domainKey)
                     svConfig = LdapUtils.GetConfigProfileFromMap(configMap, domainKey)
                     request.domain = domainKey
-                    # svConfig.Print()
                 if svConfig.is_Null():
                     print("HERE 4.C")
                     domainKey = LdapUtils.GetDomainName(request.searchValue)
                     print(domainKey)
                     svConfig = LdapUtils.GetConfigProfileFromMap(configMap, domainKey)
-                    request.domain = domainKey
-                    # svConfig.Print()
+                    request.domain = domainKey  
                 if not svConfig.is_Null():
                     print("HERE 4.D")
                     LdapUtils.SetConfigValues(Config, svConfig)
-                
         data = JsonTools().Deserialize(os.environ["DEFAULT_CONFIG"])
         envConfig = LdapConfig(data)
         LdapUtils.SetConfigValues(Config, envConfig)
         Config.Print()
         if Config.server_name == None:
-            # config.server_name = Enviroment.MachineName?????
             Config.server_name = socket.gethostname()
         if Config.ssl == None:
             Config.ssl = False
         if Config.port == None:
-            # Config.port = Config.ssl == True ? 636 : 389;???????
             Config.port = 636 if Config.ssl == True  else 389
         if Config.maxPageSize == None:
                 Config.maxPageSize = 512
-        # print(Config.server_name, "=>", request.Config().server_name)
-        # Config.Print()
         return Config
 
     def ApplyDefaultandValidate(crypto: LdapCrypto):
@@ -197,7 +174,6 @@ class LdapUtils():
     def ApplyDefaultsAndValidate(request: LdapRequest):
         request.config = LdapUtils.GetConfigProfile(request)
         attrConfigStr = os.environ['RETURN_TYPES']
-        #TEST THISSS-------
         if attrConfigStr != None or '':
             ReturnTypes = JsonTools().Deserialize(attrConfigStr)
             if not request.config.returnTypes:
@@ -205,24 +181,14 @@ class LdapUtils():
                 request.config.returnTypes = {}
             for i in ReturnTypes.keys():
                 if i not in request.config.returnTypes.keys():
-                    # print("Adding: ", i, ":", ReturnTypes[i])
                     request.config.returnTypes[i] = ReturnTypes[i]
-        # print(request.config.returnTypes)
         request.crypto = LdapUtils.ApplyDefaultandValidate(request.Crypto())
-
         try:
-            # print(request.config.password)
-            # "5iG6IK+FzNxP8/o4eVPmlTZRC43975UCJrbqh8eCLqI="
-            # request.config.password = Rijndael().Encrypt(request.config.password, request.crypto.passphrase, request.crypto.salt, request.crypto.iv)
             print("Decrypting")
             request.config.password = Rijndael().Decrypt(request.config.password, request.crypto.passphrase, request.crypto.salt, request.crypto.iv)
             print(request.config.password)
         except Exception as e:
             pass
-        # print(type(returnTypes))
-        # print(returnTypes.keys())
-        # print(request.domain)
-        # print("RETURNING . . .")
         print("\nAfter:")
         request.config.Print()
         return request
@@ -261,9 +227,7 @@ class LdapUtils():
             print(g)
         except Exception as e:
             print(e)
-        # print("HELLO")
         r2 = re.compile(dnRegexString, re.IGNORECASE)
-        #WORK ON THIS!!!
         if g != uuid.UUID(int= 0):
             request.searchBase = f"<GUID={g}>"
             identity = f"(cn=*)"
@@ -290,8 +254,6 @@ class LdapUtils():
             else:
                 print("HERE 4.4")
                 identity = f"(|(cn={searchVal})(name={searchVal})(sAMAccountName={searchVal}))"
-            
-
         return identity
         
         
@@ -321,7 +283,6 @@ class LdapUtils():
                 searchFilter = id
             else:
                 print("HERE 5.6")
-                searchFilter = f"(&(objectCategory={request.object_type.name}){id})"
-            
+                searchFilter = f"(&(objectCategory={request.object_type.name}){id})" 
         return searchFilter
     

@@ -35,7 +35,7 @@ class SearchScopeType(Enum):
 
 class LdapRequest():
     def __init__(self, data:dict):
-        self.object_type = data.get("objectType") if data.get("objectType") else None
+        self.object_type = data.get("objectType").capitalize() if data.get("objectType") else None
         self.domain = data.get("domain") if data.get("domain") else None
         self.searchValue = data.get("searchValue") if data.get("searchValue") else None
         self.searchBase = data.get("searchBase") if data.get("searchBase") else None
@@ -44,11 +44,11 @@ class LdapRequest():
         self.nextToken = data.get("nextToken") if data.get("nextToken") else None
         self.wildcardToken = data.get("wildcardSearch") if data.get("wildcardSearch") else None
         self.attributes = data.get("attributes") if data.get("attributes") else None
-        self.raise_exceptions = data.get("raise_exceptions") if data.get("raise_exceptions") else False
         self.config = data.get("config") if data.get("config") else None
         self.crypto = data.get("crypto") if data.get("crypto") else None
         self.ping = data.get("ping") if data.get("ping") else None
         self.present = self.Is_Attributes_In_Data(data=data)
+
     def Is_Attributes_In_Data(self, data):
         if "attributes" in data:
             self.present = True
