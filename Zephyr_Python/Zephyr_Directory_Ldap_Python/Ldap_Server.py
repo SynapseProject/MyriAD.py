@@ -28,6 +28,7 @@ class LDapServer:
     _FOLLOWREFERRALS = False
     _RETURNTYPES = {}
     _IGNOREWARNINGS = False
+    _CONNECTED = False
 
     def __init__(self, server: str, port: int, useSSL:bool, maxRetries:int = None, maxPageSize:int = None, followReferrals: int = None, attributeReturnTypes:dict = None, ignoreWarnings:bool = None):
         self.conn = Connection
@@ -68,14 +69,15 @@ class LDapServer:
                 self.conn = Connection(server = self.server, user=config.username, password=config.password, auto_bind= True, return_empty_attributes=False, check_names=True)
                 if self.conn:
                     print("Connected")
+                    self._CONNECTED = True
                     flag = True
             except LDAPSocketOpenError as e:
                 attempts += 1
-                print(f"Error {e}")
     
     def Disconnect(self):
-        self.conn.unbind()
-        print("Disconnected")
+        if self._CONNECTED:
+            self.conn.unbind()
+            print("Disconnected")
 
     def Bind(self):
         self.conn.bind()
@@ -83,7 +85,6 @@ class LDapServer:
     def CheckAttributes(self, attributes, response: LdapResponse, config: LdapConfig):
         attributes_ = []
         error_attributes = []
-        response.status = StatusCode.Success.name
         for attribute in attributes:
             if attribute in self.server.schema.attribute_types:
                 attributes_.append(attribute)
@@ -144,9 +145,14 @@ class LDapServer:
                         print(type(attribute))
                         strs = []
                         for b in attribute:
-                            i = binascii.hexlify(b.encode('utf8'))
-                            i = i.decode()
-                            strs.append("0x"+ i)
+                            if 'encoded' in b:
+                                i = b['encoded'].encode()
+                                i = base64.b64decode(i)
+                                strs.append('0x'+i.hex())
+                            else:
+                                i = binascii.hexlify(b.encode('utf8'))
+                                i = i.decode()
+                                strs.append("0x"+ i)
                         attributes[key] = strs
                     elif attrType == LdapAttributeTypes.Guid or attrType == "Guid":
                         print("HERE -> 3")
@@ -248,43 +254,44 @@ class LDapServer:
         if response.success == True and request.config.IgnoreWarnings == True or len(response.message) == 0:
             print("HERE a")
             if response.nextToken != None:
-                dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "NexToken": response.nextToken, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
+                dictionary = {"statusCode": 200, "success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "NexToken": response.nextToken, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
             else:    
-                dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
+                dictionary = {"statusCode": 200, "success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
         elif response.success == True and request.config.IgnoreWarnings == False:
             if response.nextToken != None:
-                dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "message": self.format_Message(response.message), "NexToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
+                dictionary = {"statusCode": 200, "success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "message": self.format_Message(response.message), "NexToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
             else:    
-                dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "message": self.format_Message(response.message), "totalRecords": response.totalRecords, "records": response.records}
+                dictionary = {"statusCode": 200, "success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "message": self.format_Message(response.message), "totalRecords": response.totalRecords, "records": response.records}
         else:
             print("Here b")
-            dictionary = {"success": response.success, "server": response.server, "status": response.status, "message": self.format_Message(response.message)}
+            dictionary = {"statusCode": 200, "success": response.success, "server": response.server, "status": response.status, "message": self.format_Message(response.message)}
         return dictionary
         
 
-    def Search(self, request: LdapRequest, searchFilter: str, attributes = None, searchScope: SearchScopeType = None, maxResults: int = sys.maxsize, nextTokenStr:str = None):
+    def Search(self, request: LdapRequest, searchFilter: str, attributes = None, searchScope: SearchScopeType = None, maxResults: int = sys.maxsize, nextTokenStr = None):
         response = LdapResponse()
         entries = []
-        # nextToken = bytearray(nextTokenStr)
+        print(len(entries))
+        if nextTokenStr != None:
+            NextToken = nextTokenStr.encode()
+            NextToken = base64.b64decode(NextToken)
+        print(nextTokenStr)
 
         try:
             if searchFilter == None or searchFilter == '':
                 print("HERE: A")
                 raise Exception("Search Filter Not Provided")
-            if not self.conn:
+            if not self.conn or not self._CONNECTED:
                 print("HERE: B")
-                response.message["LDAPConnectionError"] = f"Server {self} Is not connected"
-                response.success = False
-                response.status = StatusCode.Failure.name
+                raise LDAPSocketOpenError(f"Server '{self._SERVER}' Is not connected")
             if not self.conn.bound:
                 print("HERE: C")
-                response.message["LDAPBoundError"] = f"Server {self} Is Not Bound."
-                response.success = False
-                response.status = StatusCode.Failure.name
+                raise LDAPException(f"Server '{self._SERVER}' is Not Bound")
             request.config.IgnoreWarnings = SidUtils().Convert_Str_to_Bool(ignoreWarnings=request.config.IgnoreWarnings)
             rootDSE = JsonTools().Deserialize(var=self.server.info.to_json())
             if request.searchBase == None:
                 request.searchBase = rootDSE['raw']['defaultNamingContext'][0]
+            response.status = StatusCode.Success.name
             if attributes != None:
                 attributes,response = self.CheckAttributes(attributes, response, request.config)
             results = None
@@ -308,7 +315,8 @@ class LDapServer:
                 scope = SUBTREE
                 if searchScope != None and scope != searchScope:
                     print("HERE 5")
-                    scope = searchScope
+                    print(scope, searchScope.value)
+                    scope = searchScope.value
                 print("Starting Search")
                 self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
                 print("Got out of search")
@@ -319,7 +327,7 @@ class LDapServer:
                             del i['raw']
                             entries.append(i)
                 except LDAPReferralError as e:
-                    print(e) 
+                    print(e)
                 nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
                 if nextTokenStr == None or len(nextTokenStr) == 0:
                     break
@@ -329,7 +337,8 @@ class LDapServer:
             print("Out of While(True)")
             response = self.ParseResults(entries, response)
             if nextTokenStr != None and len(nextTokenStr) > 0:
-                response.nextToken = f"{nextTokenStr}"
+                nextTokenStr = base64.b64encode(nextTokenStr).decode()
+                response.nextToken = nextTokenStr
         except Exception as e:
             response.message[e.__class__.__name__] = f"{e}"
             response.success = False

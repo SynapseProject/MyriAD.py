@@ -245,7 +245,7 @@ class LdapUtils():
             if request.object_type == ObjectType.Contact or request.object_type == ObjectType.Printer or request.object_type == ObjectType.PrintQueue or request.object_type == ObjectType.Volume:
                 print("HERE 4.1")
                 identity = f"(|(cn={searchVal})(name={searchVal}))"
-            elif request.object_type == ObjectType.Ou or request.object_type == ObjectType.OrganizationUnit:
+            elif request.object_type == ObjectType.Ou or request.object_type == ObjectType.OrganizationalUnit:
                 print("HERE 4.2")
                 identity = f"(|(ou={searchVal})(name={searchVal}))"
             elif request.object_type == ObjectType.Domain:

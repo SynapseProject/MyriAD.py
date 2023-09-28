@@ -9,7 +9,7 @@ import ldap3
 class ObjectType(Enum):
     User = 0
     Group = 1
-    OrganizationUnit = 2
+    OrganizationalUnit = 2
     Ou = 3 
     Contact = 4
     PrintQueue = 5
@@ -40,7 +40,7 @@ class LdapRequest():
         self.searchValue = data.get("searchValue") if data.get("searchValue") else None
         self.searchBase = data.get("searchBase") if data.get("searchBase") else None
         self.searchScope = data.get("searchScope") if data.get("searchScope") else None
-        self.maxResults = data.get("maxResults") if data.get("maxResults") else None
+        self.maxResults = int(data.get("maxResults")) if data.get("maxResults") else None
         self.nextToken = data.get("nextToken") if data.get("nextToken") else None
         self.wildcardToken = data.get("wildcardSearch") if data.get("wildcardSearch") else None
         self.attributes = data.get("attributes") if data.get("attributes") else None
@@ -62,13 +62,13 @@ class LdapRequest():
             self.object_type = ObjectType.User
         elif self.object_type == "Group":
             self.object_type = ObjectType.Group
-        elif self.object_type == "OrganizationUnit":
-            self.object_type = ObjectType.OrganizationUnit
+        elif self.object_type == "Organizationalunit":
+            self.object_type = ObjectType.OrganizationalUnit
         elif self.object_type == "Ou":
             self.object_type = ObjectType.Ou
         elif self.object_type == "Contact":
             self.object_type = ObjectType.Contact
-        elif self.object_type == "PrintQueue":
+        elif self.object_type == "Printqueue":
             self.object_type = ObjectType.PrintQueue
         elif self.object_type == "Printer":
             self.object_type = ObjectType.Printer
@@ -78,7 +78,7 @@ class LdapRequest():
             self.object_type = ObjectType.Volume
         elif self.object_type == "Domain":
             self.object_type = ObjectType.Domain
-        elif self.object_type == "DomainController":
+        elif self.object_type == "Domaincontroller":
             self.object_type = ObjectType.DomainController
         elif self.object_type == "Dn":
             self.object_type = ObjectType.Dn

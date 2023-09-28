@@ -25,8 +25,8 @@ class LdapConfig():
             self.ssl = config.get("ssl") if config.get("ssl") else None
             self.username = config.get("username") if config.get("username") else None
             self.password = config.get("password") if config.get("password") else None
-            self.maxRetries = config.get("maxRetries") if config.get("maxRetries") != None else None
-            self.maxPageSize = config.get("maxPageSize") if config.get("maxPageSize") else None
+            self.maxRetries = int(config.get("maxRetries")) if config.get("maxRetries") != None else None
+            self.maxPageSize = int(config.get("maxPageSize")) if config.get("maxPageSize") else None
             self.followReferrals = config.get("followReferrals") if config.get("followReferrals") else False
             self.returnTypes = config.get("returnTypes") if config.get("returnTypes") else None
             self.IgnoreWarnings = config.get("IgnoreWarnings") if config.get("IgnoreWarnings") else False
