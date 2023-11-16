@@ -1,5 +1,3 @@
-import sys
-import json
 from Zephyr_Directory_Ldap_Python.Classes import *
 from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import LdapConfig
 from Zephyr_Directory_Ldap_Python.Classes.LdapCrypto import LdapCrypto
@@ -44,11 +42,11 @@ class LdapRequest():
         self.nextToken = data.get("nextToken") if data.get("nextToken") else None
         self.wildcardToken = data.get("wildcardSearch") if type(data.get("wildcardSearch")) == bool else None
         self.attributes = data.get("attributes") if data.get("attributes") else None
+        self.raise_exceptions = data.get("raise_exceptions") if data.get("raise_exceptions")!= None else True
         self.config = data.get("config") if data.get("config") else None
         self.crypto = data.get("crypto") if data.get("crypto") else None
         self.ping = data.get("ping") if data.get("ping") else None
         self.present = self.Is_Attributes_In_Data(data=data)
-
     def Is_Attributes_In_Data(self, data):
         if "attributes" in data:
             self.present = True
@@ -112,4 +110,3 @@ class LdapRequest():
         if self.ping == "NoEcho":
             ping = PingType.NoEcho
         return ping
-    

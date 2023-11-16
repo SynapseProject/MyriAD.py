@@ -5,7 +5,17 @@ Parameters:
   LambdaCoreRoleArn:
     Type: String
     Description: (Required) The arn of the role to be used with the core lambda function. (arn:aws:iam::############:role/role-name)
-
+  MyriadLayerBucketName:
+    Type: String
+    Description: The S3 Bucket where the 'requests' Layer is located.
+  MyriadLayerBucketKey:
+    Type: String
+    Description: The S3 Key for the bucket containing the 'requests' layer
+    Default: myriad-dev/code/layers/python.zip
+  MyriadLayerS3ObjectVersion:
+    Type: String
+    Description: The version of the bucket for the Layer code
+  
   ##### Lambda Function DotNet Core Code Locations
   MyriadCodeBucketName:
     Type: String
@@ -13,6 +23,10 @@ Parameters:
   MyriadCodeBucketKey:
     Type: String
     Description: (Required) The S3 Key for the zip file containing the lambda DotNet Core code.
+    Default: myriad-dev/code/source/lambda.zip
+  MyriadCoreS3ObjectVersion:
+    Type: String
+    Description: The version of the bucket for the Lambda code
 
   ##### Lambda VPC Configuration
   MyriadVpcSubnetIds:
@@ -27,6 +41,10 @@ Parameters:
     Type: String
     Default: myriad-core
     Description: (Required) The name for the function that processes the requests.
+  UpdateMyriadCoreFunctionName:
+    Type: String
+    Default: UpdateCFTStack
+    Description: (Required) The name for the function that updates the MyriadCore Function Code.
 
   ##### Lambda Environment Variables
   MyriadEnvDefaultConfig:
@@ -38,6 +56,21 @@ Parameters:
   MyriadEnvReturnTypes:
     Type: String
     Description: Maps LDAP Attributes To Correct Return Types (String, StringArray, Bytes, BytesArray, Guid or Sid).
+  MyriadEnvCD1:
+    Type: String
+    Description: CD1 Configs
+  MyriadEnvCD2:
+    Type: String
+    Description: CD2 Configs
+  MyriadEnvIV:
+    Type: String
+    Description: IV value for cryptography
+  MyriadEnvPassphrase:
+    Type: String
+    Description: Passphrase value for cryptography
+  MyriadEnvSaltValue:
+    Type: String
+    Description: SaltValue for cryptography
 
   ##### API Gateway Variables #####
   ApiGatewayId:
@@ -82,8 +115,13 @@ Metadata:
       Parameters:
       - MyriadCodeBucketName
       - MyriadCodeBucketKey
+      - MyriadCoreS3ObjectVersion
+      - MyriadLayerBucketName
+      - MyriadLayerBucketKey
+      - MyriadLayerS3ObjectVersion
       - LambdaCoreRoleArn
       - MyriadCoreFunctionName
+      - UpdateMyriadCoreFunctionName
     - Label:
         default: "Lambda VPC Deployment Targets (Optional - Leave both blank for deployments not tied to a VPC)"
       Parameters:
@@ -95,6 +133,11 @@ Metadata:
       - MyriadEnvDefaultConfig
       - MyriadEnvDomainMapping
       - MyriadEnvReturnTypes
+      - MyriadEnvCD1
+      - MyriadEnvCD2
+      - MyriadEnvIV
+      - MyriadEnvPassphrase
+      - MyriadEnvSaltValue
     - Label:
         default: "API Gateway Configuration (Required)"
       Parameters:
@@ -117,6 +160,20 @@ Conditions:
   CreateUsagePlanKey: !And [ !Condition CreateKey, !Condition CreateUsagePlan ]
     
 Resources: 
+  MyriadLambdaLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: MyriAD-Lambda-Layer
+      Description: Layer that should include thw LDAP3 and Cryptography modules
+      CompatibleRuntimes:
+        - python3.11
+      CompatibleArchitectures:
+        - x86_64
+      Content:
+        S3Bucket: !Ref MyriadLayerBucketName
+        S3Key: !Ref MyriadLayerBucketKey
+        S3ObjectVersion: !Ref MyriadLayerS3ObjectVersion
+
   ##### Core Lambda Function
   MyriadCoreFunction:
     Type: AWS::Lambda::Function
@@ -127,8 +184,9 @@ Resources:
       Code:
         S3Bucket: !Ref MyriadCodeBucketName
         S3Key: !Ref MyriadCodeBucketKey
-      Handler: Zephyr.Directory.Aws::Zephyr.Directory.Aws.Ldap::ProcessRequest
-      Runtime: dotnet6
+        S3ObjectVersion: !Ref MyriadCoreS3ObjectVersion
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.11
       Timeout: 600
       VpcConfig:
         !If
@@ -142,6 +200,75 @@ Resources:
           DEFAULT_CONFIG: !Ref MyriadEnvDefaultConfig
           DOMAIN_MAPPINGS: !Ref MyriadEnvDomainMapping
           RETURN_TYPES: !Ref MyriadEnvReturnTypes
+          CD1_CONFIG: !Ref MyriadEnvCD1
+          CD2_CONFIG: !Ref MyriadEnvCD2
+          IV: !Ref MyriadEnvIV
+          PASSPHRASE: !Ref MyriadEnvPassphrase
+          SALT: !Ref MyriadEnvSaltValue
+      Layers:
+        - !Ref MyriadLambdaLayer
+  UpdateCFTStackFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref UpdateMyriadCoreFunctionName
+      Description: Processes incoming search & encryption requests for MyriAD.
+      Role: !Ref LambdaCoreRoleArn
+      Code:
+        S3Bucket: !Ref MyriadCodeBucketName
+        S3Key: !Ref MyriadCodeBucketKey
+        S3ObjectVersion: !Ref MyriadCoreS3ObjectVersion
+      Handler: updateCFTStack.lambda_handler
+      Runtime: python3.11
+      Timeout: 600
+      VpcConfig:
+        !If
+          - CreateLambdaInVpc
+          -
+            SecurityGroupIds: !Ref MyriadVpcSecurityGroupIds
+            SubnetIds: !Ref MyriadVpcSubnetIds
+          - !Ref "AWS::NoValue"
+      Environment:
+        Variables:
+          CoreStackName: !Ref AWS::StackName
+  
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt UpdateCFTStackFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub 'arn:aws:s3:::${MyriadCodeBucketName}'
+  
+  # S3BucketTrigger:
+  #   Type: AWS::S3::Bucket
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     BucketName: !Ref MyriadCodeBucketName
+  #     VersioningConfiguration:
+  #       Status: Enabled
+      # NotificationConfiguration:
+      #   LambdaConfigurations:
+      #     # Event for Lambda source code
+      #     - Event: 's3:ObjectCreated:Put'
+      #       Function: !GetAtt UpdateCFTStackFunction.Arn
+      #       Filter: 
+      #         S3Key:
+      #           Rules: 
+      #             - Name: prefix
+      #               Value: myriad-dev/code/source
+      #             - Name: suffix
+      #               Value: lambda.zip
+      #     # Event for requests-layer. For each future layer that might be added, a new event must be configured. OR, remove prefix and filter in Lambda 
+      #     - Event: 's3:ObjectCreated:Put'
+      #       Function: !GetAtt UpdateCFTStackFunction.Arn
+      #       Filter: 
+      #         S3Key:
+      #           Rules: 
+      #             - Name: prefix
+      #               Value: myriad-dev/code/layers
+      #             - Name: suffix
+      #               Value: python.zip
+
 
   # API Gateway - Resources
   SearchResource:
@@ -312,7 +439,8 @@ Resources:
     Properties:
       RestApiId: !Ref ApiGatewayId
       StageName: !Ref ApiGatewayStageName
-
+      
+  ## START HERE Line 431 on Bretts cfl
 Outputs:
   Version:
     Description: Cloud Formation Template Version

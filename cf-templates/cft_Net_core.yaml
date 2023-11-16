@@ -5,17 +5,7 @@ Parameters:
   LambdaCoreRoleArn:
     Type: String
     Description: (Required) The arn of the role to be used with the core lambda function. (arn:aws:iam::############:role/role-name)
-  MyriadLayerBucketName:
-    Type: String
-    Description: The S3 Bucket where the 'requests' Layer is located.
-  MyriadLayerBucketKey:
-    Type: String
-    Description: The S3 Key for the bucket containing the 'requests' layer
-    Default: myriad-dev/code/layers/python.zip
-  MyriadLayerS3ObjectVersion:
-    Type: String
-    Description: The version of the bucket for the Layer code
-  
+
   ##### Lambda Function DotNet Core Code Locations
   MyriadCodeBucketName:
     Type: String
@@ -23,7 +13,6 @@ Parameters:
   MyriadCodeBucketKey:
     Type: String
     Description: (Required) The S3 Key for the zip file containing the lambda DotNet Core code.
-    Default: myriad-dev/code/source/lambda.zip
   MyriadCoreS3ObjectVersion:
     Type: String
     Description: The version of the bucket for the Lambda code
@@ -116,9 +105,6 @@ Metadata:
       - MyriadCodeBucketName
       - MyriadCodeBucketKey
       - MyriadCoreS3ObjectVersion
-      - MyriadLayerBucketName
-      - MyriadLayerBucketKey
-      - MyriadLayerS3ObjectVersion
       - LambdaCoreRoleArn
       - MyriadCoreFunctionName
       - UpdateMyriadCoreFunctionName
@@ -160,20 +146,6 @@ Conditions:
   CreateUsagePlanKey: !And [ !Condition CreateKey, !Condition CreateUsagePlan ]
     
 Resources: 
-  MyriadLambdaLayer:
-    Type: AWS::Lambda::LayerVersion
-    Properties:
-      LayerName: MyriAD-Lambda-Layer
-      Description: Layer that should include thw LDAP3 and Cryptography modules
-      CompatibleRuntimes:
-        - python3.11
-      CompatibleArchitectures:
-        - x86_64
-      Content:
-        S3Bucket: !Ref MyriadLayerBucketName
-        S3Key: !Ref MyriadLayerBucketKey
-        S3ObjectVersion: !Ref MyriadLayerS3ObjectVersion
-
   ##### Core Lambda Function
   MyriadCoreFunction:
     Type: AWS::Lambda::Function
@@ -185,8 +157,8 @@ Resources:
         S3Bucket: !Ref MyriadCodeBucketName
         S3Key: !Ref MyriadCodeBucketKey
         S3ObjectVersion: !Ref MyriadCoreS3ObjectVersion
-      Handler: lambda_function.lambda_handler
-      Runtime: python3.11
+      Handler: Zephyr.Directory.Aws::Zephyr.Directory.Aws.Ldap::ProcessRequest
+      Runtime: dotnet6
       Timeout: 600
       VpcConfig:
         !If
@@ -205,8 +177,8 @@ Resources:
           IV: !Ref MyriadEnvIV
           PASSPHRASE: !Ref MyriadEnvPassphrase
           SALT: !Ref MyriadEnvSaltValue
-      Layers:
-        - !Ref MyriadLambdaLayer
+
+  # Implement UpdateCFTStackFunction
   UpdateCFTStackFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -230,7 +202,7 @@ Resources:
       Environment:
         Variables:
           CoreStackName: !Ref AWS::StackName
-  
+  # Implement S3 BucketTrigger
   S3InvokeLambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -248,27 +220,15 @@ Resources:
         Status: Enabled
       NotificationConfiguration:
         LambdaConfigurations:
-          # Event for Lambda source code
           - Event: 's3:ObjectCreated:Put'
             Function: !GetAtt UpdateCFTStackFunction.Arn
-            Filter: 
+            Filter:
               S3Key:
-                Rules: 
+                Rules:
                   - Name: prefix
-                    Value: myriad-dev/code/source
+                    Value: myriad/code
                   - Name: suffix
-                    Value: lambda.zip
-          # Event for requests-layer. For each future layer that might be added, a new event must be configured. OR, remove prefix and filter in Lambda 
-          - Event: 's3:ObjectCreated:Put'
-            Function: !GetAtt UpdateCFTStackFunction.Arn
-            Filter: 
-              S3Key:
-                Rules: 
-                  - Name: prefix
-                    Value: myriad-dev/code/layers
-                  - Name: suffix
-                    Value: python.zip
-
+                    Value: Zephyr.Directory.Aws.zip
 
   # API Gateway - Resources
   SearchResource:
@@ -439,8 +399,7 @@ Resources:
     Properties:
       RestApiId: !Ref ApiGatewayId
       StageName: !Ref ApiGatewayStageName
-      
-  ## START HERE Line 431 on Bretts cfl
+
 Outputs:
   Version:
     Description: Cloud Formation Template Version
