@@ -3,6 +3,7 @@ from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import LdapConfig
 from Zephyr_Directory_Ldap_Python.Classes.LdapCrypto import LdapCrypto
 from enum import Enum
 import ldap3
+import bonsai
 #GET MORE INFO ON THIS TYPE OF CLASS
 class ObjectType(Enum):
     User = 0
@@ -30,6 +31,11 @@ class SearchScopeType(Enum):
     All = ldap3.SUBTREE
     Base = ldap3.BASE
     One = ldap3.LEVEL
+    
+class SearchScopeType2(Enum):
+    All = bonsai.LDAPSearchScope.SUBTREE
+    Base = bonsai.LDAPSearchScope.BASE
+    One = bonsai.LDAPSearchScope.ONELEVEL
 
 class LdapRequest():
     def __init__(self, data:dict):
@@ -39,6 +45,7 @@ class LdapRequest():
         self.searchBase = data.get("searchBase") if data.get("searchBase") else None
         self.searchScope = data.get("searchScope") if data.get("searchScope") else None
         self.maxResults = int(data.get("maxResults")) if data.get("maxResults") else None
+        self.MultipleSearches = data.get("union") if data.get("union") else None
         self.nextToken = data.get("nextToken") if data.get("nextToken") else None
         self.wildcardToken = data.get("wildcardSearch") if type(data.get("wildcardSearch")) == bool else None
         self.attributes = data.get("attributes") if data.get("attributes") else None
@@ -80,23 +87,23 @@ class LdapRequest():
             self.object_type = ObjectType.DomainController
         elif self.object_type == "Dn":
             self.object_type = ObjectType.Dn
-        elif self.object_type == "DistinguishedName":
+        elif self.object_type == "Distinguishedname":
             self.object_type = ObjectType.DistinguishedName
         else:
-            print("ObjectType was not Found!")
+            pass
         return self.object_type
         
     def SearchScope(self):
         if self.searchScope == None:
             pass
         elif self.searchScope == "All":
-            self.searchScope = SearchScopeType.All
+            self.searchScope = SearchScopeType2.All
         elif self.searchScope == "Base":
-            self.searchScope = SearchScopeType.Base
+            self.searchScope = SearchScopeType2.Base
         elif self.searchScope == "One":
-            self.searchScope = SearchScopeType.One
+            self.searchScope = SearchScopeType2.One
         else:
-            print("SearchScope was not found")
+            pass
         return self.searchScope
     def Config(self):
         config = LdapConfig(config=self.config)

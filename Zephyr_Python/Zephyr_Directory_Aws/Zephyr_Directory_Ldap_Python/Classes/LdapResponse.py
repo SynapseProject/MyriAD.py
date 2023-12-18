@@ -14,6 +14,7 @@ class LdapResponse():
             self.success = response.get("success")  if response.get("success") else True
             self.server = response.get("server") if response.get("server") else None
             self.searchBase = response.get("searchBase") if response.get("searchBase") else None
+            self.searchBases = response.get("searchBases") if response.get("searchBases") else None
             self.searchFilter = response.get("searchFilter") if response.get("searchFilter") else None
             self.message = response.get("message") if response.get("message") else {}
             self.status = response.get('status') if response.get('status') else None
@@ -24,7 +25,9 @@ class LdapResponse():
             self.success = True
             self.server = None
             self.searchBase = None
+            self.searchBases = None
             self.searchFilter = None
+            self.searchFilters = None
             self.message = {}
             self.status = None
             self.totalRecords = 0
@@ -34,25 +37,8 @@ class LdapResponse():
     def Message(self):
         message = self.message
         return message
-    
-    def Print_entries(self):
-        count = 0
-        for i in self.records:
-            # print(count)
-            print(i.dn)
-            print(i.attributes)
-            # print(i.Print())
-            # count += 1
-    
-    # def toJson(self):
-    #     return json.dumps(self, default=lambda o: o.__dir__)
 
     def Record(self):
         obj = LdapObject(self.records)
         return obj
 
-    def Print(self):
-        print(f"{self.success}: {self.server}, {self.searchBase}, {self.searchFilter}, {self.message}, {self.totalRecords}, {self.nextToken}, {self.records}")
-        # for i in self.records:
-        #     for j in i.attributes.values():
-        #         print(i.dn, ": ", j)

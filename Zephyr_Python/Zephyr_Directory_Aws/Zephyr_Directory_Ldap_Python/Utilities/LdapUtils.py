@@ -1,7 +1,7 @@
 import os
-import re
-import uuid
-import socket
+from uuid import UUID
+from re import findall, compile, IGNORECASE
+from socket import gethostname
 from Zephyr_Directory_Ldap_Python.Utilities.SidUtils import SidUtils
 from Zephyr_Directory_Ldap_Python.Classes.LdapCrypto import LdapCrypto
 from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import LdapRequest, ObjectType
@@ -37,7 +37,7 @@ class LdapUtils():
     
     def GetDomainName(searchVal: str):
         pattern = r"DC=([^,]+)"
-        r = re.findall(pattern,searchVal)
+        r = findall(pattern,searchVal)
         joined_str = '.'.join(r)
         return joined_str
 
@@ -93,6 +93,7 @@ class LdapUtils():
         if target.returnTypes == None:
             target.returnTypes = source.returnTypes
 
+        #Look into making it on liner.
         if source.returnTypes != None:
             for key in source.returnTypes:
                 if not target.returnTypes.get(key):
@@ -153,7 +154,7 @@ class LdapUtils():
         LdapUtils.SetConfigValues(Config, envConfig)
         if Config.server_name == None:
             # config.server_name = Enviroment.MachineName?????
-            Config.server_name = socket.gethostname()
+            Config.server_name = gethostname()
         if Config.ssl == None:
             Config.ssl = False
         if Config.port == None:
@@ -217,7 +218,7 @@ class LdapUtils():
     def GetIdentitySearchString(request: LdapRequest):
         identity = None
         searchVal = request.searchValue
-        g = uuid.UUID(int= 0)
+        g = UUID(int= 0)
         dnRegexString = "^\s*?(cn\s*=|ou\s*=|dc\s*=)"
         if LdapUtils.ContainsKnownDomain(searchVal):
             searchVal = searchVal.replace('/','\\')
@@ -230,14 +231,13 @@ class LdapUtils():
             searchVal = searchVal.replace(r"*", r"\2A")
  
         try:
-            g = uuid.UUID(searchVal)
-            print(g)
+            g = UUID(searchVal)
         except Exception as e:
             print(e)
         # print("HELLO")
-        r2 = re.compile(dnRegexString, re.IGNORECASE)
+        r2 = compile(dnRegexString, IGNORECASE)
         #WORK ON THIS!!!
-        if g != uuid.UUID(int= 0):
+        if g != UUID(int= 0):
             request.searchBase = f"<GUID={g}>"
             identity = f"(cn=*)"
         elif SidUtils.IsSid_str(sid = searchVal):

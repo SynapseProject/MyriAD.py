@@ -1,7 +1,3 @@
-import json
-import time
-import os
-import re
 from Zephyr_Crypto_Python.Rijndael import Rijndael
 from Zephyr_Directory_Ldap_Python.Ldap_Server import LDapServer
 from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import LdapRequest, PingType
@@ -22,7 +18,6 @@ def lambda_handler(event, context):
     isPing = True if request.ping != None else False
     if request.Crypto().text != None:
         crypto = LdapUtils.ApplyDefaultandValidate(crypto=request.Crypto())
-        print(crypto.text, crypto.passphrase, crypto.salt, crypto.iv)
         # _encrypt = cryptography.Encrypt(request.Crypto().text, request.Crypto().passphrase, request.Crypto().salt, request.Crypto().iv)
         response.message = cryptography.Encrypt(crypto.text, crypto.passphrase, crypto.salt, crypto.iv)
         # _decrypt = cryptography.Decrypt("5iG6IK+FzNxP8/o4eVPmlTZRC43975UCJrbqh8eCLqI=", crypto.passphrase, crypto.salt, crypto.iv)
@@ -30,14 +25,13 @@ def lambda_handler(event, context):
     elif isPing:
         response.message = "Hello From MyriAD"
         response = toJson_Ping_or_Crypto(response)
-        if request.Ping() == PingType.Echo:
-            print("Ping")
     else:
         try:
             LdapUtils.ApplyDefaultsAndValidate(request)
             searchstring = LdapUtils.GetSearchString(request)
+            if request.object_type != None and request.MultipleSearches != None:
+                raise Exception("Warning: Myriad currently does not support this type of call: Union with objectType")
             ldap = LDapServer(request.config.server_name, request.config.port, request.config.ssl, request.config.maxRetries, request.config.maxPageSize, request.config.followReferrals, request.config.returnTypes)
-            print("HERE")
             ldap.Connect_bonsai(request.config, request=request)
             request.object_type = request.ObjectType()
             request.searchScope = request.SearchScope()

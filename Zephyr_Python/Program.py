@@ -1,16 +1,14 @@
 import os
 import re
-import time
-import threading
 from multiprocessing import Process
 from Zephyr_Crypto_Python.Rijndael import Rijndael
 from Zephyr_Directory_Ldap_Python.Ldap_Server import LDapServer
-from Zephyr_Directory_Ldap_Python.Utilites.JsonTools import JsonTools
-from Zephyr_Directory_Ldap_Python.Utilites.LdapUtils import LdapUtils
+from Zephyr_Directory_Ldap_Python.Utilities.JsonTools import JsonTools
+from Zephyr_Directory_Ldap_Python.Utilities.LdapUtils import LdapUtils
 from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import LdapRequest, PingType
 from Zephyr_Directory_Ldap_Python.Classes.LdapResponse import LdapResponse
 
-_FILEPATH  = "Zephyr_Directory_Test/TestFiles/myriad.json"
+_FILEPATH  = "C:/Users/0195tw/OneDrive - BP/Desktop/MyriAD.Core.py/Zephyr_Python/Zephyr_Directory_Test/TestFiles/myriad.json"
 def toJson_Ping_or_Crypto(response: LdapResponse):
         if response.success == True:
             dictionary = {"success": response.success, "message": str(response.message)}
@@ -48,18 +46,20 @@ else:
         print("In Try Block:\n")
         LdapUtils.ApplyDefaultsAndValidate(request)
         searchstring = LdapUtils.GetSearchString(request)
+        if request.object_type != None and request.MultipleSearches != None:
+            raise Exception("Warning: Myriad currently does not support this type of call: Union with objectType")
         print("SearchString:",searchstring)
         print("SearchBase:", request.searchBase)
         print("Creating LDAP Server:")
         ldap = LDapServer(request.config.server_name, request.config.port, request.config.ssl, request.config.maxRetries, request.config.maxPageSize, request.config.followReferrals, request.config.returnTypes)
-        ldap.Connect(request.config, request=request)
+        ldap.Connect_bonsai(request.config, request=request)
         print(searchstring)
         request.object_type = request.ObjectType()
         request.searchScope = request.SearchScope()
         print("MaxResults:", request.maxResults)
         print("Attributes :" , request.attributes)
-        response = ldap.Search(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
-        ldap.Disconnect()
+        response = ldap.Search2(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
+        ldap.Disconnect_bonsai()
         print("Exiting Try Block")
     except Exception as e:
         print("error", e)

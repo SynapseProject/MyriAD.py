@@ -41,10 +41,7 @@ class LdapConfig():
             self.followReferrals = None
             self.returnTypes = None
             self.IgnoreWarnings = None
-    def Print(self):
-        print(self.server_name, self.ssl, self.username)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
-        print(self.password, self.port, self.maxRetries, self.maxPageSize)
-        print(self.followReferrals, self.returnTypes)                      
+                 
     def is_Null(self):
         properties = [self.server_name, self.port, self.ssl ,self.username, self.password, self.maxRetries, self.maxPageSize, self.followReferrals, self.returnTypes]
         bool_flag = True
