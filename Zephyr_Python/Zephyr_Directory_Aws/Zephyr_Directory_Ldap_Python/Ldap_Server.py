@@ -6,7 +6,7 @@ from collections import deque
 from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, SUBTREE, NO_ATTRIBUTES, ALL_OPERATIONAL_ATTRIBUTES
 from ldap3.core.exceptions import LDAPSocketOpenError, LDAPReferralError, LDAPException
 from Zephyr_Directory_Ldap_Python.Classes import LdapConfig, LdapRequest, LdapResponse, LdapAttributeTypes
-from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import SearchScopeType
+from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import SearchScopeType2
 from Zephyr_Directory_Ldap_Python.Classes.LdapResponse import StatusCode
 from Zephyr_Directory_Ldap_Python.Utilities.JsonTools import JsonTools
 from Zephyr_Directory_Ldap_Python.Utilities.SidUtils import SidUtils
@@ -121,11 +121,11 @@ class LDapServer:
     def CheckAttributes2(self, attributes, keylist, response: LdapResponse, config: LdapConfig, present:bool):
         attributes_ = deque()
         error_attributes = deque()
-        attributes = deque(keylist) if attributes == None and present == False else deque()
-        # if attributes == None and present == False:
-        #     attributes = deque(keylist)
-        # if attributes == None and present == True:
-        #     attributes = deque()
+        # attributes = deque(keylist) if attributes == None and present == False else deque()
+        if attributes == None and present == False:
+            attributes = deque(keylist)
+        if attributes == None and present == True:
+            attributes = deque()
         for attribute in attributes:
             if attribute in keylist and attribute != "dn":
                 attributes_.append(attribute)
@@ -287,28 +287,30 @@ class LDapServer:
         return formatted_message.strip()
             
 
-    def toJson(self, response: LdapResponse, request:LdapRequest):
+    def toJson(self, response: LdapResponse, request:LdapRequest, returning_error:bool = False):
         # dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "message": str(response.message), "NexToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
-        if (response.success == True and request.config.IgnoreWarnings == True and response.searchBases != None and response.searchFilters != None) or len(response.message) == 0:
-            if response.nextToken != None:
-                dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "nextToken": response.nextToken, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
-            else:    
-                dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
-        elif response.success == True and request.config.IgnoreWarnings == False and response.searchBases != None and response.searchFilters != None:
-            if response.nextToken != None:
-                dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "status": response.status, "message": self.format_Message(response.message), "nextToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
-            else:    
-                dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "status": response.status, "message": self.format_Message(response.message), "totalRecords": response.totalRecords, "records": response.records}
-        elif (response.success == True and request.config.IgnoreWarnings == True and response.searchBases == None and response.searchFilters == None) or len(response.message) == 0:
-            if response.nextToken != None:
-                dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBase": response.searchBase, "searchFilter": response.searchFilter, "nextToken": response.nextToken, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
-            else:    
-                dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
-        elif response.success == True and request.config.IgnoreWarnings == False and response.searchBases == None and response.searchFilters == None:
-            if response.nextToken != None:
-                dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "message": self.format_Message(response.message), "nextToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
-            else:    
-                dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "message": self.format_Message(response.message), "totalRecords": response.totalRecords, "records": response.records}
+        if response.searchBases != None and response.searchFilters != None and not returning_error:
+            if request.config.IgnoreWarnings == True or len(response.message) == 0:
+                if response.nextToken != None:
+                    dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "nextToken": response.nextToken, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
+                else:    
+                    dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
+            elif request.config.IgnoreWarnings == False:
+                if response.nextToken != None:
+                    dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "status": response.status, "message": self.format_Message(response.message), "nextToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
+                else:    
+                    dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "status": response.status, "message": self.format_Message(response.message), "totalRecords": response.totalRecords, "records": response.records}
+        elif response.searchBases == None and response.searchFilters == None and not returning_error:
+            if request.config.IgnoreWarnings == True or len(response.message) == 0:
+                if response.nextToken != None:
+                    dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBase": response.searchBase, "searchFilter": response.searchFilter, "nextToken": response.nextToken, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
+                else:    
+                    dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
+            elif request.config.IgnoreWarnings == False:
+                if response.nextToken != None:
+                    dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "message": self.format_Message(response.message), "nextToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
+                else:    
+                    dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "message": self.format_Message(response.message), "totalRecords": response.totalRecords, "records": response.records}
         else:
             dictionary = {"statusCode": 200, "success": response.success, "server": response.server, "status": response.status, "message": self.format_Message(response.message)}
 
@@ -390,7 +392,7 @@ class LDapServer:
         else:
             results.append(self.conn.paged_search(base=searchBase, scope=bonsai.LDAPSearchScope.SUBTREE, filter_exp=searchValue, attrlist=attributes, timeout=ServerTimeLimit, sizelimit=maxSearchResults, page_size=maxPageSize))
 
-    def Search2(self, request: LdapRequest, searchFilter: str, attributes = None, searchScope: SearchScopeType = None, maxResults: int = maxsize, nextTokenStr = None):
+    def Search2(self, request: LdapRequest, searchFilter: str, attributes = None, searchScope: SearchScopeType2 = None, maxResults: int = maxsize, nextTokenStr = None):
         response = LdapResponse()
         entries = deque()
         if nextTokenStr != None:
@@ -408,6 +410,8 @@ class LDapServer:
             # if request.searchBase == None:
             #     request.searchBase =rootDSE
             response.status = StatusCode.Success.name
+            searchFilter_list = [searchFilter]
+            searchBase_list = [request.searchBase]
             if request.MultipleSearches != None:
                 for i  in request.MultipleSearches:
                     searchBase_flag = 'searchBase' in i.keys()
@@ -416,6 +420,8 @@ class LDapServer:
                         i['searchBase'] = request.searchBase
                     else:
                         i['searchValue'] = searchFilter
+                    searchFilter_list.append(i["searchValue"])
+                    searchBase_list.append(i["searchBase"])
             results = deque()
             options = Options(0,maxResults,3600,self._FOLLOWREFERRALS)
             while True:
@@ -426,18 +432,14 @@ class LDapServer:
                 maxPageSize = maxSearchResults-len(entries) if maxSearchResults - len(entries) < self._MAXPAGESIZE else self._MAXPAGESIZE
                 # if maxSearchResults - len(entries) < self._MAXPAGESIZE:
                 #     maxPageSize = maxSearchResults-len(entries)
-                scope = searchScope.value if searchScope != None and scope != searchScope else bonsai.LDAPSearchScope.SUBTREE
-                # if searchScope != None and scope != searchScope:
+                scope = searchScope.value if searchScope != None else bonsai.LDAPSearchScope.SUBTREE
+                # if searchScope != None:
                 #     scope = searchScope.value
                 # entry_list = []
                 if request.maxResults == None:
                     results.append(self.conn.search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults))
                     if request.MultipleSearches != None:
-                        searchFilter_list = [searchFilter]
-                        searchBase_list = [request.searchBase]
                         for i in request.MultipleSearches:
-                            searchFilter_list.append(i["searchValue"])
-                            searchBase_list.append(i["searchBase"])
                             thread_obj = Thread(target=self.test_func_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, False))
                             thread_obj.start()
                             thread_obj.join()
@@ -466,11 +468,7 @@ class LDapServer:
                     if nextTokenStr == None:
                         results.append(self.conn.paged_search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults, page_size=request.maxResults))
                         if request.MultipleSearches != None:
-                            searchFilter_list = [searchFilter]
-                            searchBase_list = [request.searchBase]
                             for i in request.MultipleSearches:
-                                searchFilter_list.append(i["searchValue"])
-                                searchBase_list.append(i["searchBase"])
                                 thread_obj = Thread(target=self.test_func_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, True))
                                 thread_obj.start()
                                 thread_obj.join()
@@ -554,12 +552,13 @@ class LDapServer:
         return response
     
     def ReturnError(self, e: Exception, config: LdapConfig, request: LdapRequest):
+        returning_error = True
         response = LdapResponse()
         response.success = False
         response.status = StatusCode.Failure.name
         response.server = config.server_name
         response.message[e.__class__.__name__] = f"{e}"
-        response = self.toJson(response=response, request=request)
+        response = self.toJson(response=response, request=request, returning_error=returning_error)
 
         return response
     
