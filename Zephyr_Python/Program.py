@@ -47,8 +47,9 @@ else:
         LdapUtils.ApplyDefaultsAndValidate(request)
         searchstring = LdapUtils.GetSearchString(request)
         ldap = LDapServer(request.config.server_name, request.config.port, request.config.ssl, request.config.maxRetries, request.config.maxPageSize, request.config.followReferrals, request.config.returnTypes)
-        if request.object_type != None and request.MultipleSearches != None:
-            raise Exception("Warning: Myriad currently does not support this type of call: Union with objectType")
+        # if request.object_type != None and request.MultipleSearches != None:
+        #     raise Exception("Warning: Myriad currently does not support this type of call: Union with objectType")
+        # LdapUtils.CheckforError(request)
         print("SearchString:",searchstring)
         print("SearchBase:", request.searchBase)
         print("Creating LDAP Server:")

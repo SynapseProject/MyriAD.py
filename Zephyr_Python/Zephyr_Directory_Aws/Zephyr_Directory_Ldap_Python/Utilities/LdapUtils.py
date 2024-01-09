@@ -215,9 +215,9 @@ class LdapUtils():
                     rc = True
         return rc
 
-    def GetIdentitySearchString(request: LdapRequest):
+    def GetIdentitySearchString(request: LdapRequest, searchValue = None, searchBase = None, flag: bool = False):
         identity = None
-        searchVal = request.searchValue
+        searchVal = request.searchValue if not flag else searchValue
         g = UUID(int= 0)
         dnRegexString = "^\s*?(cn\s*=|ou\s*=|dc\s*=)"
         if LdapUtils.ContainsKnownDomain(searchVal):
@@ -262,13 +262,13 @@ class LdapUtils():
         
         
     # # #START POINT
-    def GetSearchString(request: LdapRequest):
+    def GetSearchString(request: LdapRequest, searchValue = None, searchBase = None, flag:bool = False):
         request.ObjectType()
         searchFilter = None
         if request.object_type == None:
-            searchFilter = request.searchValue
+            searchFilter = request.searchValue if not flag else searchValue
         else:
-            id = LdapUtils.GetIdentitySearchString(request)
+            id = LdapUtils.GetIdentitySearchString(request, searchValue, searchBase, flag)
             if request.object_type == ObjectType.Ou:
                 searchFilter = f"(&(objectCategory=OrganizationalUnit){id})"
             elif request.object_type == ObjectType.Contact:
@@ -284,3 +284,11 @@ class LdapUtils():
             
         return searchFilter
     
+    def CheckforError(request: LdapRequest, searchValue, searchBase):
+        dnRegexString = "\([^)]*\)"
+        result = compile(dnRegexString, IGNORECASE)
+        if not result.match(searchValue):
+            # Then generate Search Filter
+            searchValue = LdapUtils.GetSearchString(request, searchValue, searchBase, True)
+            # raise Exception("Error: Search Value is not properly formatted")
+        return searchValue

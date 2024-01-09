@@ -8,6 +8,7 @@ from ldap3.core.exceptions import LDAPSocketOpenError, LDAPReferralError, LDAPEx
 from Zephyr_Directory_Ldap_Python.Classes import LdapConfig, LdapRequest, LdapResponse, LdapAttributeTypes
 from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import SearchScopeType2
 from Zephyr_Directory_Ldap_Python.Classes.LdapResponse import StatusCode
+from Zephyr_Directory_Ldap_Python.Utilities.LdapUtils import LdapUtils
 from Zephyr_Directory_Ldap_Python.Utilities.JsonTools import JsonTools
 from Zephyr_Directory_Ldap_Python.Utilities.SidUtils import SidUtils
 from Zephyr_Directory_Ldap_Python.KnownAttributes import KnownAttributes
@@ -417,8 +418,10 @@ class LDapServer:
                     searchValue_flag = 'searchValue' in i.keys()
                     if searchBase_flag == False and searchValue_flag == True:
                         i['searchBase'] = request.searchBase
-                    else:
+                    elif searchBase_flag == True and searchValue_flag == False:
                         i['searchValue'] = searchFilter
+                    # ADD Search Value Generator
+                    i['searchValue'] = LdapUtils.CheckforError(request, i['searchValue'], i['searchBase'])
                     searchBase_list.append(i["searchBase"])
                     searchFilter_list.append(i['searchValue'])
             results = deque()
