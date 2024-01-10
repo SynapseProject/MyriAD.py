@@ -496,18 +496,22 @@ class LDapServer:
                             entry["attributes"] = attributez
                             entries.append(entry)
                     else:
-                        results = self.conn.paged_search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults, page_size=request.maxResults)
-                        difference = nextTokenStr - results.acquire_next_page()
-                        i = 0
-                        while i < difference-1:
-                            x = results.acquire_next_page()
+                        results.append(self.conn.paged_search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults, page_size=request.maxResults))
+                        flag = False
+                        while True:
+                            x = results[0].acquire_next_page()
+                            if x == nextTokenStr:
+                                flag = True
+                                break
                             self.conn._evaluate(x)
-                            i += 1
-                        results.acquire_next_page()
-                        results = self.conn._evaluate(nextTokenStr)
+                            if x == nextTokenStr - 1:
+                                break
+                        if not flag:
+                            results[0].acquire_next_page()
+                        results[0] = self.conn._evaluate(nextTokenStr)
                         # for i in results:
                         #     entry_list.append(i)
-                        entry_list = [i for i in results]
+                        entry_list = [j for i in results for j in i]
                         key_list = list(entry_list[0].keys()) if entry_list else []
                         attributes,response = self.CheckAttributes2(attributes, key_list, response, request.config, request.present)
                         for i in entry_list:
