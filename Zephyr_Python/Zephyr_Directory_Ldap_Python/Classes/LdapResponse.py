@@ -21,6 +21,7 @@ class LdapResponse():
             self.status = response.get('status') if response.get('status') else None
             self.totalRecords = response.get("totalRecords") if response.get("totalRecords") else 0
             self.nextToken = response.get("nextToken") if response.get("nextToken") else None
+            self.nextTokens = response.get("nextTokens") if response.get("nextTokens") else None
             self.records = response.get("records") if response.get("records") else []
         else:
             self.success = True
@@ -33,6 +34,7 @@ class LdapResponse():
             self.status = None
             self.totalRecords = 0
             self.nextToken = None
+            self.nextTokens = None
             self.records = []
 
     def Message(self):

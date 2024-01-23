@@ -30,13 +30,20 @@ def lambda_handler(event, context):
             LdapUtils.ApplyDefaultsAndValidate(request)
             searchstring = LdapUtils.GetSearchString(request)
             ldap = LDapServer(request.config.server_name, request.config.port, request.config.ssl, request.config.maxRetries, request.config.maxPageSize, request.config.followReferrals, request.config.returnTypes)
-            if request.object_type != None and request.MultipleSearches != None:
-                raise Exception("Warning: Myriad currently does not support this type of call: Union with objectType")
-            ldap.Connect_bonsai(request.config, request=request)
-            request.object_type = request.ObjectType()
-            request.searchScope = request.SearchScope()
-            response = ldap.Search2(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
-            ldap.Disconnect_bonsai()
+            # if request.object_type != None and request.MultipleSearches != None:
+            #     raise Exception("Warning: Myriad currently does not support this type of call: Union with objectType")
+            if request.config.Token_type == "Client":
+                ldap.Connect_bonsai(request.config, request=request)
+                request.object_type = request.ObjectType()
+                request.searchScope = request.SearchScope()
+                response = ldap.Search2(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
+                ldap.Disconnect_bonsai()
+            elif request.config.Token_type == "Server":
+                ldap.Connect(request.config, request=request)
+                request.object_type = request.ObjectType()
+                request.searchScope = request.SearchScope()
+                response = ldap.Search(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
+                ldap.Disconnect()
         except Exception as e:
             response = ldap.ReturnError(e, request.config, request=request)
     return response

@@ -93,6 +93,9 @@ class LdapUtils():
         if target.returnTypes == None:
             target.returnTypes = source.returnTypes
 
+        if target.Token_type == None:
+            target.Token_type = "Server" if source.Token_type == None else source.Token_type
+
         #Look into making it on liner.
         if source.returnTypes != None:
             for key in source.returnTypes:

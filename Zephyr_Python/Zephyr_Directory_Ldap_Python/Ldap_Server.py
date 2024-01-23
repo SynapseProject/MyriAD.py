@@ -6,7 +6,7 @@ from collections import deque
 from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, SUBTREE, NO_ATTRIBUTES, ALL_OPERATIONAL_ATTRIBUTES
 from ldap3.core.exceptions import LDAPSocketOpenError, LDAPReferralError, LDAPException
 from Zephyr_Directory_Ldap_Python.Classes import LdapConfig, LdapRequest, LdapResponse, LdapAttributeTypes
-from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import SearchScopeType2
+from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import SearchScopeType2, SearchScopeType
 from Zephyr_Directory_Ldap_Python.Classes.LdapResponse import StatusCode
 from Zephyr_Directory_Ldap_Python.Utilities.LdapUtils import LdapUtils
 from Zephyr_Directory_Ldap_Python.Utilities.JsonTools import JsonTools
@@ -65,18 +65,18 @@ class LDapServer:
     # def Bind(self, config:LdapConfig):
     #     self.conn.bind(self.srv)
         
-    # def Connect(self, config, request):
-    #     flag = False
-    #     attempts = 0
-    #     while attempts  <= self._MAXRETRIES and flag == False:
-    #         try:
-    #             self.server = Server(self._SERVER, self._PORT, use_ssl=self._USESSL, get_info=ALL)
-    #             self.conn = Connection(server = self.server, user=config.username, password=config.password, auto_bind= True, return_empty_attributes=False, check_names=True)
-    #             if self.conn:
-    #                 flag = True
-    #                 self._CONNECTED = True
-    #         except LDAPSocketOpenError as e:
-    #             attempts += 1
+    def Connect(self, config, request):
+        flag = False
+        attempts = 0
+        while attempts  <= self._MAXRETRIES and flag == False:
+            try:
+                self.server = Server(self._SERVER, self._PORT, use_ssl=self._USESSL, get_info=ALL)
+                self.conn = Connection(server = self.server, user=config.username, password=config.password, auto_bind= True, return_empty_attributes=False, check_names=True)
+                if self.conn:
+                    flag = True
+                    self._CONNECTED = True
+            except LDAPSocketOpenError as e:
+                attempts += 1
     
     def Connect_bonsai(self, config, request):
         flag = False
@@ -95,9 +95,9 @@ class LDapServer:
             except LDAPSocketOpenError as e:
                 attempts += 1
 
-    # def Disconnect(self):
-    #     if self._CONNECTED:
-    #         self.conn.unbind()
+    def Disconnect(self):
+        if self._CONNECTED:
+            self.conn.unbind()
 
     def Disconnect_bonsai(self):
         if self._CONNECTED:
@@ -106,18 +106,18 @@ class LDapServer:
     # def Bind(self):
     #     self.conn.bind()
 
-    # def CheckAttributes(self, attributes, response: LdapResponse, config: LdapConfig):
-    #     attributes_ = []
-    #     error_attributes = []
-    #     for attribute in attributes:
-    #         if attribute in self.server.schema.attribute_types:
-    #             attributes_.append(attribute)
-    #         else:
-    #             error_attributes.append(attribute)
-    #     if len(error_attributes) > 0 and config.IgnoreWarnings == False:
-    #         response.status = StatusCode.SuccessWithWarnings.name
-    #         response.message["LDAPInvalidAttributeType"] = f"Invalid Attribute(s): {', '.join(error_attributes)}"
-    #     return attributes_, response
+    def CheckAttributes(self, attributes, response: LdapResponse, config: LdapConfig):
+        attributes_ = []
+        error_attributes = []
+        for attribute in attributes:
+            if attribute in self.server.schema.attribute_types:
+                attributes_.append(attribute)
+            else:
+                error_attributes.append(attribute)
+        if len(error_attributes) > 0 and config.IgnoreWarnings == False:
+            response.status = StatusCode.SuccessWithWarnings.name
+            response.message["LDAPInvalidAttributeType"] = f"Invalid Attribute(s): {', '.join(error_attributes)}"
+        return attributes_, response
     
     def CheckAttributes2(self, attributes, keylist, response: LdapResponse, config: LdapConfig, present:bool):
         attributes_ = deque()
@@ -178,9 +178,11 @@ class LDapServer:
                         try:
                             for b in attribute:
                                 if 'encoded' in b:
-                                    i = b['encoded'].encode()
+                                    i = attribute['encoded'].encode()
                                     i = b64decode(i)
                                     strs.append('0x'+i.hex())
+                                elif 'encoding' in b:
+                                    break
                                 else:
                                     i = hexlify(b.encode('utf8'))
                                     i = i.decode()
@@ -190,17 +192,17 @@ class LDapServer:
                         attributes[key] = list(strs)
                     elif attrType == LdapAttributeTypes.Guid or attrType == "Guid":
                         try:
-                            attributes[key] = str(UUID(bytes_le=b64decode(attribute["encoded"].encode()))) if byteorder == "little" else str(UUID(bytes=b64decode(attribute["encoded"].encode()))) if "encoded" in attribute else str(UUID(attribute))
-                            # if "encoded" in attribute:
-                            #     i = attribute["encoded"].encode()
-                            #     i = b64decode(i)
-                            #     attributes[key] = str(UUID(bytes_le=i)) if byteorder == "little" else str(UUID(bytes=i))
-                            #     # if byteorder == "little":
-                            #     #     attributes[key] = str(UUID(bytes_le=i))
-                            #     # else:
-                            #     #     attributes[key] = str(UUID(bytes=i))
-                            # else:
-                            #     attributes[key] = str(UUID(attribute))
+                            # attributes[key] = str(UUID(bytes_le=b64decode(attribute["encoded"].encode()))) if byteorder == "little" else str(UUID(bytes=b64decode(attribute["encoded"].encode()))) if "encoded" in attribute else str(UUID(attribute))
+                            if "encoded" in attribute:
+                                i = attribute["encoded"].encode()
+                                i = b64decode(i)
+                                attributes[key] = str(UUID(bytes_le=i)) if byteorder == "little" else str(UUID(bytes=i))
+                                # if byteorder == "little":
+                                #     attributes[key] = str(UUID(bytes_le=i))
+                                # else:
+                                #     attributes[key] = str(UUID(bytes=i))
+                            else:
+                                attributes[key] = str(UUID(attribute))
                         except:
                             attributes[key] = str(UUID(bytes_le=attribute)) if byteorder == "little" else str(UUID(bytes=attribute)) 
                             # if byteorder == "little":
@@ -291,8 +293,8 @@ class LDapServer:
         # dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "message": str(response.message), "NexToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
         if response.searchBases != None and response.searchFilters != None and not returning_error:
             if request.config.IgnoreWarnings == True or len(response.message) == 0:
-                if response.nextToken != None:
-                    dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "nextToken": response.nextToken, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
+                if response.nextTokens != None:
+                    dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "nextTokens": response.nextTokens, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
                 else:    
                     dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBases": response.searchBases, "searchFilters": response.searchFilters, "status": response.status, "totalRecords": response.totalRecords, "records": response.records}
             elif request.config.IgnoreWarnings == False:
@@ -316,81 +318,122 @@ class LDapServer:
 
         return dictionary
         
+    def Multiple_Searches_python_ldap(self, results, searchBase, searchFilter, attributes, scope, server_time_limit, maxSearchResults, maxPageSize, nextTokenStr):
+        self.conn.search(search_base=searchBase, search_filter=searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=server_time_limit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
+        results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
 
-    # def Search(self, request: LdapRequest, searchFilter: str, attributes = None, searchScope: SearchScopeType = None, maxResults: int = maxsize, nextTokenStr:str = None):
-    #     response = LdapResponse()
-    #     entries = []
-    #     if nextTokenStr != None:
-    #         nextTokenStr = nextTokenStr.encode()
-    #         nextTokenStr = b64decode(nextTokenStr)
-    #     # nextToken = nextTokenStr.fromhex()
+    def Search(self, request: LdapRequest, searchFilter: str, attributes = None, searchScope: SearchScopeType = None, maxResults: int = maxsize, nextTokenStr:str = None):
+        response = LdapResponse()
+        entries = []
+        if nextTokenStr != None:
+            nextTokenStr = nextTokenStr.encode()
+            nextTokenStr = b64decode(nextTokenStr)
+        # nextToken = nextTokenStr.fromhex()
 
-    #     try:
-    #         if searchFilter == None or searchFilter == '':
-    #             raise Exception("Search Filter Not Provided")
-    #         if not self.conn or not self._CONNECTED:
-    #             raise LDAPSocketOpenError(f"Server '{self._SERVER}' Is not connected")
-    #         if not self.conn.bound:
-    #             raise LDAPException(f"Server '{self._SERVER}' is Not Bound")
-    #         request.config.IgnoreWarnings = SidUtils().Convert_Str_to_Bool(ignoreWarnings=request.config.IgnoreWarnings)
-    #         rootDSE = JsonTools().Deserialize(var=self.server.info.to_json())
-    #         request.searchBase = rootDSE['raw']['defaultNamingContext'][0] if request.searchBase == None else request.searchBase
-    #         # if request.searchBase == None:
-    #         #     request.searchBase = rootDSE['raw']['defaultNamingContext'][0]
-    #         response.status = StatusCode.Success.name
-    #         if attributes != None:
-    #             attributes,response = self.CheckAttributes(attributes, response, request.config)
-    #         results = None
-    #         options = Options(0,maxResults,3600,self._FOLLOWREFERRALS)
-    #         while True:
-    #             maxPageSize = self._MAXPAGESIZE
-    #             maxSearchResults = 999999
-    #             if maxResults != None:
-    #                 maxSearchResults = maxResults
-    #             if maxSearchResults - len(entries) < self._MAXPAGESIZE:
-    #                 maxPageSize = maxSearchResults-len(entries)
-    #             if request.present == True and attributes == None:
-    #                 attributes = NO_ATTRIBUTES
-    #             if request.present == False:
-    #                 attributes = ALL_ATTRIBUTES
-    #             scope = SUBTREE
-    #             if searchScope != None and scope != searchScope:
-    #                 scope = searchScope.value
-    #             self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
-    #             results = JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True))
-    #             try:
-    #                 for i in results['entries']:
-    #                     if i is not None:
-    #                         del i['raw']
-    #                         entries.append(i)
-    #             except LDAPReferralError as e:
-    #                 print(e) 
-                
-    #             nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
+        try:
+            if searchFilter == None or searchFilter == '':
+                raise Exception("Search Filter Not Provided")
+            if not self.conn or not self._CONNECTED:
+                raise LDAPSocketOpenError(f"Server '{self._SERVER}' Is not connected")
+            if not self.conn.bound:
+                raise LDAPException(f"Server '{self._SERVER}' is Not Bound")
+            request.config.IgnoreWarnings = SidUtils().Convert_Str_to_Bool(ignoreWarnings=request.config.IgnoreWarnings)
+            rootDSE = JsonTools().Deserialize(var=self.server.info.to_json())
+            request.searchBase = rootDSE['raw']['defaultNamingContext'][0] if request.searchBase == None else request.searchBase
+            # if request.searchBase == None:
+            #     request.searchBase = rootDSE['raw']['defaultNamingContext'][0]
+            response.status = StatusCode.Success.name
+            if attributes != None:
+                attributes,response = self.CheckAttributes(attributes, response, request.config)
+            searchFilter_list = [searchFilter]
+            searchBase_list = [request.searchBase]
+            if request.MultipleSearches != None:
+                for i  in request.MultipleSearches:
+                    searchBase_flag = 'searchBase' in i.keys()
+                    searchValue_flag = 'searchValue' in i.keys()
+                    if searchBase_flag == False and searchValue_flag == True:
+                        i['searchBase'] = request.searchBase
+                    elif searchBase_flag == True and searchValue_flag == False:
+                        i['searchValue'] = searchFilter
+                    # ADD Search Value Generator
+                    i['searchValue'] = LdapUtils.CheckforError(request, i['searchValue'], i['searchBase'])
+                    searchBase_list.append(i["searchBase"])
+                    searchFilter_list.append(i['searchValue'])
+            results = []
+            options = Options(0,maxResults,3600,self._FOLLOWREFERRALS)
+            while True:
+                maxPageSize = self._MAXPAGESIZE
+                maxSearchResults = 999999
+                if maxResults != None:
+                    maxSearchResults = maxResults
+                if maxSearchResults - len(entries) < self._MAXPAGESIZE:
+                    maxPageSize = maxSearchResults-len(entries)
+                if request.present == True and attributes == None:
+                    attributes = NO_ATTRIBUTES
+                if request.present == False:
+                    attributes = ALL_ATTRIBUTES
+                scope = SUBTREE
+                if searchScope != None and scope != searchScope:
+                    scope = searchScope.value
+                self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
+                results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
+                nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie']
+                if request.MultipleSearches != None:
+                    for i in request.MultipleSearches:
+                        thread_obj = Thread(target=self.Multiple_Searches_python_ldap, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr))
+                        thread_obj.start()
+                        thread_obj.join()
+                try:
+                    for result in results:
+                        for i in result['entries']:
+                            if i is not None:
+                                try:
+                                    del i['raw']
+                                except:
+                                    continue
+                                entries.append(i)
+                except LDAPReferralError as e:
+                    print(e) 
 
-    #             if nextTokenStr == None or len(nextTokenStr) == 0:
-    #                 break
-    #             if maxSearchResults <= len(entries):
-    #                 break
-    #         response = self.ParseResults(entries, response)
-    #         if nextTokenStr != None and len(nextTokenStr) > 0:
-    #             nextTokenStr = b64encode(nextTokenStr).decode()
-    #             response.nextToken = nextTokenStr
-    #     except Exception as e:
-    #         response.message[e.__class__.__name__] = f"{e}"
-    #         response.success = False
-    #         response.status = StatusCode.Failure.name
-    #     response.server = self._SERVER
-    #     response.searchBase = request.searchBase
-    #     response.searchFilter = searchFilter
-    #     response = self.toJson(response=response, request=request)
-    #     return response
+                if nextTokenStr == None or len(nextTokenStr) == 0:
+                    break
+                if maxSearchResults <= len(entries):
+                    break
+            response = self.ParseResults(entries, response)
+            if nextTokenStr != None and len(nextTokenStr) > 0:
+                nextTokenStr = b64encode(nextTokenStr).decode()
+                response.nextToken = nextTokenStr
+        except Exception as e:
+            response.message[e.__class__.__name__] = f"{e}"
+            response.success = False
+            response.status = StatusCode.Failure.name
+        response.server = self._SERVER
+        if request.MultipleSearches != None:
+            response.searchBases = searchBase_list
+            response.searchFilters = searchFilter_list
+            response.nextToken = nextTokenStr
+        else:
+            response.searchBase = request.searchBase
+            response.searchFilter = searchFilter
+        response = self.toJson(response=response, request=request)
+        return response
     
-    def test_func_bonsai(self, results, searchBase, searchValue, attributes, scope, ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, paged: False):
-        if not paged:
+    def Multiple_Searches_bonsai(self, results, searchBase, searchValue, attributes, scope, ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, paged: False):
+        if not paged == True:
             results.append(self.conn.search(base=searchBase, scope=scope, filter_exp=searchValue, attrlist=attributes, timeout=ServerTimeLimit, sizelimit=maxSearchResults))
         else:
-            results.append(self.conn.paged_search(base=searchBase, scope=bonsai.LDAPSearchScope.SUBTREE, filter_exp=searchValue, attrlist=attributes, timeout=ServerTimeLimit, sizelimit=maxSearchResults, page_size=maxPageSize))
+            x = self.conn.paged_search(base=searchBase, scope=scope, filter_exp=searchValue, attrlist=attributes, timeout=ServerTimeLimit, sizelimit=maxSearchResults, page_size=maxPageSize)
+            results.append(x)
+    
+    # def Next_Page_iterator(self, results, nextTokenStr):
+    #     while True:
+    #         x = results[0].acquire_next_page()
+    #         if x == nextTokenStr:
+    #             flag = True
+    #             break
+    #         self.conn._evaluate(x)
+    #         if x == nextTokenStr - 1:
+    #             break
 
     def Search2(self, request: LdapRequest, searchFilter: str, attributes = None, searchScope: SearchScopeType2 = None, maxResults: int = maxsize, nextTokenStr = None):
         response = LdapResponse()
@@ -424,13 +467,14 @@ class LDapServer:
                     i['searchValue'] = LdapUtils.CheckforError(request, i['searchValue'], i['searchBase'])
                     searchBase_list.append(i["searchBase"])
                     searchFilter_list.append(i['searchValue'])
-            results = deque()
+            results = []
             options = Options(0,maxResults,3600,self._FOLLOWREFERRALS)
             while True:
                 # maxPageSize = self._MAXPAGESIZE
-                maxSearchResults = maxResults if maxResults != None else 999999
+                maxSearchResults = maxResults if maxResults != None else 9999
                 # if maxResults != None:
                 #     maxSearchResults = maxResults
+                print(maxSearchResults - len(entries), self._MAXPAGESIZE)
                 maxPageSize = maxSearchResults-len(entries) if maxSearchResults - len(entries) < self._MAXPAGESIZE else self._MAXPAGESIZE
                 # if maxSearchResults - len(entries) < self._MAXPAGESIZE:
                 #     maxPageSize = maxSearchResults-len(entries)
@@ -442,7 +486,7 @@ class LDapServer:
                     results.append(self.conn.search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults))
                     if request.MultipleSearches != None:
                         for i in request.MultipleSearches:
-                            thread_obj = Thread(target=self.test_func_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, False))
+                            thread_obj = Thread(target=self.Multiple_Searches_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, False))
                             thread_obj.start()
                             thread_obj.join()
                     # for i in results:
@@ -469,14 +513,13 @@ class LDapServer:
                 else:
                     if nextTokenStr == None:
                         results.append(self.conn.paged_search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults, page_size=request.maxResults))
-                        if request.MultipleSearches != None:
+                        if request.MultipleSearches != None and len(entries) != maxResults:
+                            iteration = 1
                             for i in request.MultipleSearches:
-                                thread_obj = Thread(target=self.test_func_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, True))
+                                thread_obj = Thread(target=self.Multiple_Searches_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, True))
                                 thread_obj.start()
                                 thread_obj.join()
-                        # for i in results:
-                        #     for j in i:
-                        #         entry_list.append(j)
+                                iteration += 1
                         entry_list = [j for i in results for j in i]
                         key_list = list(entry_list[0].keys()) if entry_list else []
                         attributes,response = self.CheckAttributes2(attributes, key_list, response, request.config, request.present)
@@ -497,6 +540,12 @@ class LDapServer:
                             entries.append(entry)
                     else:
                         results.append(self.conn.paged_search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults, page_size=request.maxResults))
+                        if request.MultipleSearches != None:
+                            iteration = 0
+                            for i in request.MultipleSearches:
+                                thread_obj = Thread(target=self.Multiple_Searches_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, True))
+                                thread_obj.start()
+                                thread_obj.join()
                         flag = False
                         while True:
                             x = results[0].acquire_next_page()
@@ -509,6 +558,8 @@ class LDapServer:
                         if not flag:
                             results[0].acquire_next_page()
                         results[0] = self.conn._evaluate(nextTokenStr)
+                        #Evaluate 
+                            
                         # for i in results:
                         #     entry_list.append(i)
                         entry_list = [j for i in results for j in i]
@@ -530,7 +581,10 @@ class LDapServer:
                             entry["attributes"] = attributez
                             entries.append(entry)
                 try:
-                    nextTokenStr  = results[0].acquire_next_page()
+                    if len(results) > 1:
+                        pass
+                    else:
+                        nextTokenStr  = results[0].acquire_next_page()
                 except:
                     nextTokenStr = None
                 if nextTokenStr == None:
@@ -550,6 +604,7 @@ class LDapServer:
         if request.MultipleSearches != None:
             response.searchBases = searchBase_list
             response.searchFilters = searchFilter_list
+            response.nextToken = nextTokenStr
         else:
             response.searchBase = request.searchBase
             response.searchFilter = searchFilter

@@ -53,14 +53,20 @@ else:
         print("SearchString:",searchstring)
         print("SearchBase:", request.searchBase)
         print("Creating LDAP Server:")
-        ldap.Connect_bonsai(request.config, request=request)
-        print(searchstring)
-        request.object_type = request.ObjectType()
-        request.searchScope = request.SearchScope()
-        print("MaxResults:", request.maxResults)
-        print("Attributes :" , request.attributes)
-        response = ldap.Search2(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
-        ldap.Disconnect_bonsai()
+        if request.config.Token_type == "Server":
+            ldap.Connect(request.config, request=request)
+            request.object_type = request.ObjectType()
+            request.searchScope = request.SearchScope()
+            response = ldap.Search(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
+            ldap.Disconnect()
+        elif request.config.Token_type == "Client":
+            ldap.Connect_bonsai(request.config, request=request)
+            request.object_type = request.ObjectType()
+            request.searchScope = request.SearchScope()
+            response = ldap.Search2(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
+            ldap.Disconnect_bonsai()
+        else:
+            raise Exception("Token Type is Invalid")
         print("Exiting Try Block")
     except Exception as e:
         print("error", e)
