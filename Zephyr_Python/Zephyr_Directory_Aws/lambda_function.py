@@ -38,7 +38,7 @@ def lambda_handler(event, context):
                 request.searchScope = request.SearchScope()
                 response = ldap.Search2(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
                 ldap.Disconnect_bonsai()
-            elif request.config.Token_type == "Server":
+            elif request.config.Token_type == "Server" or request.config.Token_type == "Server/Client" or request.config.server_name_present == True:
                 ldap.Connect(request.config, request=request)
                 request.object_type = request.ObjectType()
                 request.searchScope = request.SearchScope()

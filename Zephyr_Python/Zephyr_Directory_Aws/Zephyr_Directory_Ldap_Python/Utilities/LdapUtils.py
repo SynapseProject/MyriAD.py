@@ -66,6 +66,9 @@ class LdapUtils():
         if target.server_name == None:
             target.server_name = source.server_name
 
+        if target.server_name_present == None:
+            target.server_name_present = source.server_name_present
+
         if target.port == None:
             target.port = source.port
 

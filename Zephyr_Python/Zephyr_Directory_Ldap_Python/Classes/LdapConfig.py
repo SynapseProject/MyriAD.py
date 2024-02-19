@@ -21,6 +21,7 @@ class LdapConfig():
     def __init__(self, config: dict = None):
         if config != None:
             self.server_name = config.get("server") if config.get("server") else None
+            self.server_name_present = True if config.get("server") else False
             self.Token_type = config.get("TokenType") if config.get("TokenType") else None
             self.port = config.get("port") if config.get("port") else None
             self.ssl = config.get("ssl") if config.get("ssl") != None else None
@@ -33,6 +34,7 @@ class LdapConfig():
             self.IgnoreWarnings = config.get("IgnoreWarnings") if config.get("IgnoreWarnings") else False
         else:
             self.server_name = None
+            self.server_name_present = None
             self.Token_type = None
             self.port = None
             self.ssl = None

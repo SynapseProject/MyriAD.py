@@ -1,25 +1,16 @@
 {
-    "domain": "bp1",
-	"searchBase": "DC=bp1,DC=ad,DC=bp,DC=com",
     "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))",
-    "attributes": [
-    	"cn",
-    	"name",
-    	"sAMAccountName"
-    ],
-    "maxResults": 3,
-    "union": [
+    "attributes": [],
+    "maxResults": 24,
+    "union":[
         {
-            "searchBase": "DC=bp1,DC=ad,DC=bp,DC=com",
-			"searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
+            "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
         },
         {
-            "searchBase": "DC=bp1,DC=ad,DC=bp,DC=com",
-			"searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
-        },
-        {
-            "searchBase": "DC=bp1,DC=ad,DC=bp,DC=com",
-			"searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
+            "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
         }
-    ]
+    ],
+    "config": {
+        "TokenType": "Server/Client"
+    }
 }
