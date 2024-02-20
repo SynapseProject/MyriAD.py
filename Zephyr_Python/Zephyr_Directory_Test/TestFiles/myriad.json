@@ -1,16 +1,26 @@
 {
-    "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))",
+    "objectType": "Group",
+    "searchValue": "leegroup_*",
+    "searchBase": "OU=Myriad,OU=TooManyGroups2,DC=ad,DC=cavazosactivedirectory,DC=com",
     "attributes": [],
-    "maxResults": 24,
-    "union":[
+    "maxResults": 10,
+    "nextToken": "10-01",
+    "union": [
         {
-            "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
+            "searchValue": "leegroup_*",
+            "searchBase": "OU=Myriad,OU=TooManyGroups2,DC=ad,DC=cavazosactivedirectory,DC=com" 
         },
         {
-            "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
+            "searchValue": "leegroup_*",
+            "searchBase": "OU=Myriad,OU=TooManyGroups2,DC=ad,DC=cavazosactivedirectory,DC=com"
         }
     ],
     "config": {
-        "TokenType": "Server/Client"
+        "server": "40.119.57.239",
+        "username": "LC1\\leecavazos",
+        "password": "TpMUNmPbeLBmhLQf0iuCnA==",
+        "ssl": false,
+        "TokenType": "Server/Client",
+        "ignoreWarnings": true
     }
 }

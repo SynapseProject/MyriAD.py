@@ -398,22 +398,32 @@ class LDapServer:
                         results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
                         nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
                     else:
-                        Parser = nextTokenStr
-                        self.conn.search(request.MultipleSearches[Pick_up_here-2]['searchBase'], request.MultipleSearches[Pick_up_here-2]['searchValue'], attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults+int(nextTokenStr), paged_size=maxPageSize+int(nextTokenStr), paged_cookie=None)
-                        results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
-                        nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
-                        results[0]['entries'] = results[0]['entries'][int(Parser):]
+                        if request.config.Token_type != "Server":
+                            Parser = nextTokenStr
+                            self.conn.search(request.MultipleSearches[Pick_up_here-2]['searchBase'], request.MultipleSearches[Pick_up_here-2]['searchValue'], attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults+int(nextTokenStr), paged_size=maxPageSize+int(nextTokenStr), paged_cookie=None)
+                            results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
+                            nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
+                            results[0]['entries'] = results[0]['entries'][int(Parser):]
+                        else:
+                            self.conn.search(request.MultipleSearches[Pick_up_here-2]['searchBase'], request.MultipleSearches[Pick_up_here-2]['searchValue'], attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
+                            results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
+                            nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
                 else:
                     if nextTokenStr == None:
                         self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
                         results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
                         nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
                     else:
-                        Parser = nextTokenStr
-                        self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults+int(nextTokenStr), paged_size=maxPageSize+int(nextTokenStr), paged_cookie= None)
-                        results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
-                        nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
-                        results[0]['entries'] = results[0]['entries'][int(Parser):]
+                        if request.config.Token_type != "Server":
+                            Parser = nextTokenStr
+                            self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults+int(nextTokenStr), paged_size=maxPageSize+int(nextTokenStr), paged_cookie= None)
+                            results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
+                            nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
+                            results[0]['entries'] = results[0]['entries'][int(Parser):]
+                        else:
+                            self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
+                            results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
+                            nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
                 continueToken = None
                 try:
                     currentRecords = len(results[0]['entries'])
@@ -458,6 +468,7 @@ class LDapServer:
                     if request.MultipleSearches != None:
                         iteration = Pick_up_here
                         if nextTokenStr == None:
+                            print()
                             for i in range(Pick_up_here-1, len(request.MultipleSearches)):
                                 recordsLeft = maxSearchResults - currentRecords
                                 if recordsLeft <= maxSearchResults and currentRecords != maxSearchResults:
@@ -586,6 +597,7 @@ class LDapServer:
                 maxSearchResults = maxResults if maxResults != None else 9999
                 # if maxResults != None:
                 #     maxSearchResults = maxResults
+                print(maxSearchResults - len(entries), self._MAXPAGESIZE)
                 maxPageSize = maxSearchResults-len(entries) if maxSearchResults - len(entries) < self._MAXPAGESIZE else self._MAXPAGESIZE
                 # if maxSearchResults - len(entries) < self._MAXPAGESIZE:
                 #     maxPageSize = maxSearchResults-len(entries)
@@ -721,6 +733,7 @@ class LDapServer:
                                             PossibleNextToken = str(recordsLeft) + continueToken
                                         break
                                     PossibleNextToken = Records_gone_through + continueToken
+                                    print(i)
                             else:
                                 if results[0].acquire_next_page():
                                     continueToken = f"-0{Pick_up_here}"
