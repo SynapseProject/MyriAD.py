@@ -8,7 +8,7 @@ from Zephyr_Directory_Ldap_Python.Utilities.LdapUtils import LdapUtils
 from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import LdapRequest, PingType
 from Zephyr_Directory_Ldap_Python.Classes.LdapResponse import LdapResponse
 
-_FILEPATH  = "C:/Users/0195tw/OneDrive - BP/Desktop/MyriAD.Core.py/Zephyr_Python/Zephyr_Directory_Test/TestFiles/myriad.json"
+_FILEPATH  = "C:/Users/0195tw/OneDrive - BP/Desktop/Github-MyriAD.py/MyriAD.py/Zephyr_Python/Zephyr_Directory_Test/TestFiles/myriad.json"
 def toJson_Ping_or_Crypto(response: LdapResponse):
         if response.success == True:
             dictionary = {"success": response.success, "message": str(response.message)}
@@ -33,8 +33,6 @@ if request.Crypto().text != None:
     crypto = LdapUtils.ApplyDefaultandValidate(crypto=request.Crypto())
     print(crypto.text, crypto.passphrase, crypto.salt, crypto.iv)
     response.message = cryptography.Encrypt(crypto.text, crypto.passphrase, crypto.salt, crypto.iv)
-    test = cryptography.Decrypt("3TBCF+kzaX3Qnjv3CLLmywI8nZB9SAswjE3CAaG4A4P10+kPAJ/1fOEu7TcBhW0D2UJt2kEpQuWwaMsLFrXONA==", crypto.passphrase, crypto.salt, crypto.iv)
-    print(test)
     response = toJson_Ping_or_Crypto(response)
 elif isPing:
     response.message = "Hello From MyriAD."

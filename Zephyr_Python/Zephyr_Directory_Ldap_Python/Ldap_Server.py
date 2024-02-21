@@ -333,6 +333,8 @@ class LDapServer:
         Parser = 0
         if nextTokenStr != None:
             try:
+                if request.config.Token_type == "Server/Client":
+                    nextTokenStr = b64decode(nextTokenStr).decode()
                 nextTokenStr_Split = nextTokenStr.rsplit("-", 1)
                 nextTokenStr = nextTokenStr_Split[0]
                 Pick_up_here = int(nextTokenStr_Split[1])
@@ -468,7 +470,6 @@ class LDapServer:
                     if request.MultipleSearches != None:
                         iteration = Pick_up_here
                         if nextTokenStr == None:
-                            print()
                             for i in range(Pick_up_here-1, len(request.MultipleSearches)):
                                 recordsLeft = maxSearchResults - currentRecords
                                 if recordsLeft <= maxSearchResults and currentRecords != maxSearchResults:
@@ -520,7 +521,8 @@ class LDapServer:
                 nextTokenStr = b64encode(nextTokenStr).decode()
                 response.nextToken = nextTokenStr + continueToken if continueToken != None else nextTokenStr
             elif nextTokenStr != None and len(nextTokenStr) > 0 and type(nextTokenStr) == str:
-                response.nextToken = nextTokenStr + continueToken if continueToken != None else nextTokenStr
+                encoded_text = nextTokenStr + continueToken
+                response.nextToken = b64encode(encoded_text.encode()).decode() if continueToken != None else b64encode(nextTokenStr).decode()
         except Exception as e:
             response.message[e.__class__.__name__] = f"{e}"
             response.success = False
@@ -559,6 +561,7 @@ class LDapServer:
         continueToken = "-00"
         if nextTokenStr != None:
             try:
+                nextTokenStr = b64decode(nextTokenStr).decode()
                 nextTokenStr_Split = nextTokenStr.rsplit("-", 1)
                 nextTokenStr = nextTokenStr_Split[0]
                 Pick_up_here = int(nextTokenStr_Split[1])
@@ -741,21 +744,6 @@ class LDapServer:
                                 else:
                                     continueToken = f"-0{Pick_up_here+1}"
                                     PossibleNextToken = str(recordsLeft) + continueToken
-                            # for i in request.MultipleSearches:
-                            #     recordsLeft = maxResults - currentRecords
-                            #     PossibleNextToken = str(recordsLeft)
-                            #     if recordsLeft < maxResults and currentRecords != maxResults:
-                            #         thread_obj = Thread(target=self.Multiple_Searches_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, recordsLeft, nextTokenStr, True))
-                            #         thread_obj.start()
-                            #         thread_obj.join()
-                            #         entry_list = entry_list + [i for i in results[-1]]
-                            #         continueToken = f"-0{iteration}"
-                            #         currentRecords = len(entry_list)
-                            #         iteration += 1
-                            #     else:
-                            #         continueToken = f"-0{iteration}"
-                            #         PossibleNextToken = PossibleNextToken + continueToken
-                            #         break
                         # entry_list = [j for i in results for j in i]
                         key_list = list(entry_list[0].keys()) if entry_list else []
                         attributes,response = self.CheckAttributes2(attributes, key_list, response, request.config, request.present)
@@ -788,7 +776,7 @@ class LDapServer:
                     break
             # response = self.ParseResults(entries, response)
             response = self.ParseResults(entries, response)
-            response.nextToken = nextTokenStr if nextTokenStr != None else None
+            response.nextToken = b64encode(nextTokenStr.encode()).decode() if nextTokenStr != None else None
             # if nextTokenStr != None:
             #     response.nextToken = nextTokenStr
         except Exception as e:

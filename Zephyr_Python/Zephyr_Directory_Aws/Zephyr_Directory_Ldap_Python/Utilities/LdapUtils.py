@@ -108,7 +108,6 @@ class LdapUtils():
         # print(type(request.Config()))
         Config = LdapConfig()
         configMap = JsonTools().Deserialize(os.environ["DOMAIN_MAPPINGS"])
-        # print(configMap["BP1"], "=>", request.Config().maxRetries)
         if not request.Config().is_Null():
             LdapUtils.SetConfigValues(Config, request.Config())
         if request.domain != None:
