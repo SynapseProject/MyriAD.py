@@ -10,9 +10,6 @@ from Zephyr_Directory_Ldap_Python.Utilities.JsonTools import JsonTools
 from Zephyr_Crypto_Python.Rijndael import Rijndael
 
 class LdapUtils():
-    # os.environ["IV"] = "293464BAFE31A0B7"
-    # os.environ['PASSPHRASE'] = 'mYr1Ad22p4SSPHr4s'
-    # os.environ['SALT'] = 'mYR4nd0MSaLtV1ue'
     def GetDomainShortName(searchVal: str):
         domain = None
         if searchVal != None:
@@ -127,7 +124,6 @@ class LdapUtils():
         elif configMap is not None:
             if request.searchBase is not None:
                 domain = LdapUtils.GetDomainName(request.searchBase)
-                # domain = "BP1.AD.BP.COM"
                 sbConfig = LdapConfig()
                 sbConfig = LdapUtils.GetConfigProfileFromMap(configMap, domain)
                 sbConfig = LdapUtils.SetConfigValues(Config, sbConfig)
@@ -199,9 +195,6 @@ class LdapUtils():
         request.crypto = LdapUtils.ApplyDefaultandValidate(request.Crypto())
 
         try:
-            # print(request.config.password)
-            # "5iG6IK+FzNxP8/o4eVPmlTZRC43975UCJrbqh8eCLqI="
-            # request.config.password = Rijndael().Encrypt(request.config.password, request.crypto.passphrase, request.crypto.salt, request.crypto.iv)
             request.config.password = Rijndael().Decrypt(request.config.password, request.crypto.passphrase, request.crypto.salt, request.crypto.iv)
         except Exception as e:
             pass
