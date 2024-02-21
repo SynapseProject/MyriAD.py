@@ -10,9 +10,6 @@ from Zephyr_Directory_Ldap_Python.Utilities.JsonTools import JsonTools
 from Zephyr_Crypto_Python.Rijndael import Rijndael
 
 class LdapUtils():
-    # os.environ["IV"] = "293464BAFE31A0B7"
-    # os.environ['PASSPHRASE'] = 'mYr1Ad22p4SSPHr4s'
-    # os.environ['SALT'] = 'mYR4nd0MSaLtV1ue'
     def GetDomainShortName(searchVal: str):
         domain = None
         if searchVal != None:
@@ -164,7 +161,6 @@ class LdapUtils():
         if Config.ssl == None:
             Config.ssl = False
         if Config.port == None:
-            # Config.port = Config.ssl == True ? 636 : 389;???????
             Config.port = 636 if Config.ssl == True  else 389
         if Config.maxPageSize == None:
                 Config.maxPageSize = 512
@@ -200,8 +196,6 @@ class LdapUtils():
 
         try:
             # print(request.config.password)
-            # "5iG6IK+FzNxP8/o4eVPmlTZRC43975UCJrbqh8eCLqI="
-            # request.config.password = Rijndael().Encrypt(request.config.password, request.crypto.passphrase, request.crypto.salt, request.crypto.iv)
             request.config.password = Rijndael().Decrypt(request.config.password, request.crypto.passphrase, request.crypto.salt, request.crypto.iv)
         except Exception as e:
             pass
