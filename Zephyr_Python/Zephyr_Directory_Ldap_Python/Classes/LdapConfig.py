@@ -31,7 +31,7 @@ class LdapConfig():
             self.maxPageSize = int(config.get("maxPageSize")) if config.get("maxPageSize") else None
             self.followReferrals = config.get("followReferrals") if config.get("followReferrals") else False
             self.returnTypes = config.get("returnTypes") if config.get("returnTypes") else None
-            self.IgnoreWarnings = config.get("IgnoreWarnings") if config.get("IgnoreWarnings") else False
+            self.IgnoreWarnings = config.get("ignoreWarnings") if config.get("ignoreWarnings") else False
         else:
             self.server_name = None
             self.server_name_present = None
