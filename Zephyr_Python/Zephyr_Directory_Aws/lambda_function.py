@@ -18,9 +18,7 @@ def lambda_handler(event, context):
     isPing = True if request.ping != None else False
     if request.Crypto().text != None:
         crypto = LdapUtils.ApplyDefaultandValidate(crypto=request.Crypto())
-        # _encrypt = cryptography.Encrypt(request.Crypto().text, request.Crypto().passphrase, request.Crypto().salt, request.Crypto().iv)
         response.message = cryptography.Encrypt(crypto.text, crypto.passphrase, crypto.salt, crypto.iv)
-        # _decrypt = cryptography.Decrypt("5iG6IK+FzNxP8/o4eVPmlTZRC43975UCJrbqh8eCLqI=", crypto.passphrase, crypto.salt, crypto.iv)
         response = toJson_Ping_or_Crypto(response)
     elif isPing:
         response.message = "Hello From MyriAD"
