@@ -500,6 +500,10 @@ class LDapServer:
                                 continueToken = f"-0{Pick_up_here}"
                             else:
                                 continueToken = f"-0{Pick_up_here+1}"
+                    else:
+                        if nextTokenStr != None:
+                            nextTokenStr = str(currentRecords+int(Parser))
+                            continueToken = f"-0{Pick_up_here}"
                 try:
                     for result in results:
                         for i in result['entries']:
@@ -674,6 +678,11 @@ class LDapServer:
                                 else:
                                     continueToken = f"-02"
                                     PossibleNextToken = str(recordsLeft) + continueToken
+                        else:
+                            if results[0].acquire_next_page():
+                                currentRecords = len(entry_list)
+                                continueToken = f"-01"
+                                PossibleNextToken = str(currentRecords) + continueToken
                         # entry_list = [j for i in results for j in i]
                         key_list = list(entry_list[0].keys()) if entry_list else []
                         attributes,response = self.CheckAttributes2(attributes, key_list, response, request.config, request.present)
