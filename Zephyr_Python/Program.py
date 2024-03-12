@@ -64,7 +64,7 @@ else:
             response = ldap.Search2(request=request, searchFilter=searchstring, attributes=request.attributes, searchScope=request.searchScope, maxResults=request.maxResults, nextTokenStr=request.nextToken)
             ldap.Disconnect_bonsai()
         else:
-            raise Exception("Token Type is Invalid")
+            raise Exception("TTokenType must be set to Server or Client or Server/Client")
         print("Exiting Try Block")
     except Exception as e:
         print("error", e)

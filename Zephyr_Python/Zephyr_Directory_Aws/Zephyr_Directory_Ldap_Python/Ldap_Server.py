@@ -89,7 +89,6 @@ class LDapServer:
         while attempts <= self._MAXRETRIES and flag == False:
             try:
                 self.server = bonsai.LDAPClient(self._URL, self._USESSL)
-                self.server.ca_cert = '/opt/BP Root CA 19.crt'
                 self.server.set_auto_page_acquire(False)
                 self.server.set_credentials("SIMPLE", user= config.username, password= config.password)
                 self.conn = self.server.connect()
@@ -143,14 +142,6 @@ class LDapServer:
     def AddValueWithUnknownType(self, rec, key, attribute):
         values = attribute if type(attribute) == list or type(attribute) == bonsai.ldapvaluelist.LDAPValueList else [str(attribute)]
         rec[key] = values if len(values) > 1 else str(values[0])
-        # if type(attribute) == list or type(attribute) == bonsai.ldapvaluelist.LDAPValueList:
-        #     values = attribute
-        # else:
-        #     values = [str(attribute)]
-        # if len(values) > 1:
-        #     rec[key] = values
-        # else:
-        #     rec[key] = str(values[0])
 
     def ParseResults(self, entries, response: LdapResponse):
         response.records = entries
@@ -182,7 +173,7 @@ class LDapServer:
                         try:
                             for b in attribute:
                                 if 'encoded' in b:
-                                    i = attribute['encoded'].encode()
+                                    i = attribute[0]['encoded'].encode()
                                     i = b64decode(i)
                                     strs.append('0x'+i.hex())
                                 elif 'encoding' in b:
@@ -331,6 +322,7 @@ class LDapServer:
         entries = []
         Pick_up_here = 1
         Parser = 0
+        # Decoding for Server and Server/Client Token Types
         if nextTokenStr != None:
             try:
                 if request.config.Token_type == "Server/Client":
@@ -367,6 +359,7 @@ class LDapServer:
             searchFilter_list = [searchFilter]
             searchBase_list = [request.searchBase]
             if request.MultipleSearches != None:
+                # Validate each entry in the Union Property
                 for i  in request.MultipleSearches:
                     searchBase_flag = 'searchBase' in i.keys()
                     searchValue_flag = 'searchValue' in i.keys()
@@ -394,6 +387,9 @@ class LDapServer:
                 scope = SUBTREE
                 if searchScope != None and scope != searchScope:
                     scope = searchScope.value
+                # Pick_up_Here is used to determine where the previous search finished, if Pick_up_Here is > 1 that means that the search finished in a 
+                # Multiple Searches Entry
+                # These conditional statements also determine the size_limit for the search
                 if Pick_up_here > 1:
                     if nextTokenStr == None:
                         self.conn.search(request.MultipleSearches[Pick_up_here-2]['searchBase'], request.MultipleSearches[Pick_up_here-2]['searchValue'], attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
@@ -429,16 +425,19 @@ class LDapServer:
                 continueToken = None
                 try:
                     currentRecords = len(results[0]['entries'])
+                    if len(results) > 1:
+                        currentRecords = currentRecords + len(results[-1]['entries'])
                 except:
                     currentRecords = 0
-                # TEst This: By passing in NextTokens
                 if request.config.Token_type == "Server":
+                    # Searching process for Server Based Token
                     if request.MultipleSearches != None:
                         iteration = Pick_up_here
                         if nextTokenStr == None:
                             for i in range(Pick_up_here-1, len(request.MultipleSearches)):
                                 recordsLeft = maxSearchResults - currentRecords
                                 if recordsLeft <= maxSearchResults and currentRecords != maxSearchResults:
+                                    # Multi Threading for Multiple Searches, the new entries will be added to the results list
                                     thread_obj = Thread(target=self.Multiple_Searches_python_ldap, args=(results, request.MultipleSearches[i]['searchBase'], request.MultipleSearches[i]['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, recordsLeft, nextTokenStr))
                                     thread_obj.start()
                                     thread_obj.join()
@@ -449,6 +448,7 @@ class LDapServer:
                                         nextTokenStr = nextTokenStr if nextTokenStr else struct.pack('10s', bytes("0000", 'utf-8'))
                                     iteration += 1
                                     if nextTokenStr == None and i == len(request.MultipleSearches)-1:
+                                        # No Token is present and index is at the last entry. In other words the searxch is finished
                                         nextTokenStr = None
                                         break
                                     if nextTokenStr != None:
@@ -467,12 +467,14 @@ class LDapServer:
                             else:
                                 continueToken = f"-0{Pick_up_here+1}"
                 else:
+                    # Searching process for Server/Client Based Token
                     if request.MultipleSearches != None:
                         iteration = Pick_up_here
                         if nextTokenStr == None:
                             for i in range(Pick_up_here-1, len(request.MultipleSearches)):
                                 recordsLeft = maxSearchResults - currentRecords
                                 if recordsLeft <= maxSearchResults and currentRecords != maxSearchResults:
+                                    # Multi Threading for Multiple Searches, the new entries will be added to the results list
                                     thread_obj = Thread(target=self.Multiple_Searches_python_ldap, args=(results, request.MultipleSearches[i]['searchBase'], request.MultipleSearches[i]['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, recordsLeft, nextTokenStr))
                                     thread_obj.start()
                                     thread_obj.join()
@@ -483,6 +485,7 @@ class LDapServer:
                                         nextTokenStr = str(recordsLeft)
                                     iteration += 1
                                     if nextTokenStr == None and i == len(request.MultipleSearches)-1:
+                                        # No Token is present and index is at the last entry. In other words the searxch is finished
                                         nextTokenStr = None
                                         break
                                     if nextTokenStr != None:
@@ -501,6 +504,7 @@ class LDapServer:
                             else:
                                 continueToken = f"-0{Pick_up_here+1}"
                     else:
+                        # Union is not present, meaning its just an ordinary search
                         if nextTokenStr != None:
                             nextTokenStr = str(currentRecords+int(Parser))
                             continueToken = f"-0{Pick_up_here}"
@@ -520,6 +524,8 @@ class LDapServer:
                     break
                 if maxSearchResults <= len(entries):
                     break
+                if request.config.Token_type == "Server/Client":
+                    nextTokenStr = None
             response = self.ParseResults(entries, response)
             if nextTokenStr != None and len(nextTokenStr) > 0 and type(nextTokenStr) == bytes:
                 nextTokenStr = b64encode(nextTokenStr).decode()
@@ -547,23 +553,15 @@ class LDapServer:
         else:
             x = self.conn.paged_search(base=searchBase, scope=scope, filter_exp=searchValue, attrlist=attributes, timeout=ServerTimeLimit, sizelimit=maxSearchResults, page_size=maxPageSize)
             results.append(x)
-    
-    # def Next_Page_iterator(self, results, nextTokenStr):
-    #     while True:
-    #         x = results[0].acquire_next_page()
-    #         if x == nextTokenStr:
-    #             flag = True
-    #             break
-    #         self.conn._evaluate(x)
-    #         if x == nextTokenStr - 1:
-    #             break
 
     def Search2(self, request: LdapRequest, searchFilter: str, attributes = None, searchScope: SearchScopeType2 = None, maxResults: int = maxsize, nextTokenStr = None):
         response = LdapResponse()
         entries = deque()
         parsed_entries = None
+        Pick_up_here = 1
         continueToken = "-00"
         if nextTokenStr != None:
+            # Decoding for Client Based Token Types
             try:
                 nextTokenStr = b64decode(nextTokenStr).decode()
                 nextTokenStr_Split = nextTokenStr.rsplit("-", 1)
@@ -586,6 +584,7 @@ class LDapServer:
             searchFilter_list = [searchFilter]
             searchBase_list = [request.searchBase]
             if request.MultipleSearches != None:
+                # Validate each entry in the Union Property
                 for i  in request.MultipleSearches:
                     searchBase_flag = 'searchBase' in i.keys()
                     searchValue_flag = 'searchValue' in i.keys()
@@ -613,9 +612,11 @@ class LDapServer:
                 #     scope = searchScope.value
                 # entry_list = []
                 if request.maxResults == None:
+                    # User wants MyriAD to return all records that fit the LDAP searchFilter
                     results.append(self.conn.search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults))
                     if request.MultipleSearches != None:
                         for i in request.MultipleSearches:
+                            # Multi Threading for Multiple Searches, the new entries will be added to the results list
                             thread_obj = Thread(target=self.Multiple_Searches_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, False))
                             thread_obj.start()
                             thread_obj.join()
@@ -642,6 +643,7 @@ class LDapServer:
                         entries.append(entry)
                 else:
                     if nextTokenStr == None:
+                        # MaxResults has a value, but no nextoken is passed in
                         results.append(self.conn.paged_search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults, page_size=request.maxResults))
                         entry_list = [i for i in results[0]]
                         if request.MultipleSearches != None:
@@ -653,6 +655,7 @@ class LDapServer:
                                 for i in request.MultipleSearches:
                                     recordsLeft = maxResults - currentRecords
                                     if recordsLeft < maxResults and currentRecords != maxResults:
+                                        # Multi Threading for Multiple Searches, the new entries will be added to the results list
                                         thread_obj = Thread(target=self.Multiple_Searches_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, recordsLeft, nextTokenStr, True))
                                         PossibleNextToken = str(recordsLeft)
                                         thread_obj.start()
@@ -679,6 +682,7 @@ class LDapServer:
                                     continueToken = f"-02"
                                     PossibleNextToken = str(recordsLeft) + continueToken
                         else:
+                            # Union is not present, meaning its just an ordinary search
                             if results[0].acquire_next_page():
                                 currentRecords = len(entry_list)
                                 continueToken = f"-01"
@@ -702,9 +706,11 @@ class LDapServer:
                             entry["attributes"] = attributez
                             entries.append(entry)
                     else:
-                        # Continue Here: Fix issue where if its the last search it wont return the Pick-up here token
+                        # MaxResults has a value and a nextoken is passed in
                         maxResults = request.maxResults
                         maxSearchResults = maxResults
+                        # Pick_up_Here is used to determine where the previous search finished, if Pick_up_Here is > 1 that means that the search finished in a 
+                        # Multiple Searches Entry
                         if Pick_up_here > 1:
                             results.append(self.conn.paged_search(base=request.MultipleSearches[Pick_up_here-2]["searchBase"], scope=scope, filter_exp=request.MultipleSearches[Pick_up_here-2]["searchValue"], attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults+int(nextTokenStr), page_size=maxResults+int(nextTokenStr)))
                         else:
@@ -720,6 +726,7 @@ class LDapServer:
                                 for i in range(Pick_up_here-1, len(request.MultipleSearches)):
                                     recordsLeft = maxResults - currentRecords
                                     if recordsLeft < maxResults and currentRecords != maxResults:
+                                        # Multi Threading for Multiple Searches, the new entries will be added to the results list
                                         thread_obj = Thread(target=self.Multiple_Searches_bonsai, args=(results, request.MultipleSearches[i]['searchBase'], request.MultipleSearches[i]['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, recordsLeft, None, True))
                                         Records_gone_through = str(recordsLeft)
                                         thread_obj.start()

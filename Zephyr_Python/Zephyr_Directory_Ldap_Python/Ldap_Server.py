@@ -89,7 +89,6 @@ class LDapServer:
         while attempts <= self._MAXRETRIES and flag == False:
             try:
                 self.server = bonsai.LDAPClient(self._URL, self._USESSL)
-                self.server.ca_cert = '/opt/BP Root CA 19.crt'
                 self.server.set_auto_page_acquire(False)
                 self.server.set_credentials("SIMPLE", user= config.username, password= config.password)
                 self.conn = self.server.connect()
@@ -182,7 +181,7 @@ class LDapServer:
                         try:
                             for b in attribute:
                                 if 'encoded' in b:
-                                    i = attribute['encoded'].encode()
+                                    i = attribute[0]['encoded'].encode()
                                     i = b64decode(i)
                                     strs.append('0x'+i.hex())
                                 elif 'encoding' in b:
@@ -429,6 +428,8 @@ class LDapServer:
                 continueToken = None
                 try:
                     currentRecords = len(results[0]['entries'])
+                    if len(results) > 1:
+                        currentRecords = currentRecords + len(results[-1]['entries'])
                 except:
                     currentRecords = 0
                 # TEst This: By passing in NextTokens
@@ -520,6 +521,8 @@ class LDapServer:
                     break
                 if maxSearchResults <= len(entries):
                     break
+                if request.config.Token_type == "Server/Client":
+                    nextTokenStr = None
             response = self.ParseResults(entries, response)
             if nextTokenStr != None and len(nextTokenStr) > 0 and type(nextTokenStr) == bytes:
                 nextTokenStr = b64encode(nextTokenStr).decode()
@@ -562,6 +565,7 @@ class LDapServer:
         response = LdapResponse()
         entries = deque()
         parsed_entries = None
+        Pick_up_here = 1
         continueToken = "-00"
         if nextTokenStr != None:
             try:
