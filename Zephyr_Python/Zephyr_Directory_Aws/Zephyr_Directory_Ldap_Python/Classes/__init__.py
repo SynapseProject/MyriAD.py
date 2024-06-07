@@ -3,3 +3,4 @@ from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import LdapConfig, LdapAttr
 from Zephyr_Directory_Ldap_Python.Classes.LdapCrypto import LdapCrypto
 from Zephyr_Directory_Ldap_Python.Classes.LdapObjects import LdapObject
 from Zephyr_Directory_Ldap_Python.Classes.LdapResponse import LdapResponse
+from Zephyr_Directory_Ldap_Python.Classes.LdapBatchResponse import LdapBatchResponse

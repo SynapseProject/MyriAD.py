@@ -35,6 +35,15 @@ Parameters:
     Default: UpdateCFTStack
     Description: (Required) The name for the function that updates the MyriadCore Function Code.
 
+  ##### DynamoDB Names
+  RequestDynamoDBName:
+    Type: String
+    Description: (Optional) The name for the Requests Dynamo Table for Batch Processing.
+    Default: Myriad_batch_request
+  RecordsDynamoDBName:
+    Type: String
+    Description: (Optional) The name for the Records Dynamo Table for Batch Processing
+    Default: Myriad_batch_records
   ##### Lambda Environment Variables
   MyriadEnvDefaultConfig:
     Type: String
@@ -60,6 +69,10 @@ Parameters:
   MyriadEnvSaltValue:
     Type: String
     Description: SaltValue for cryptography
+  TimeToLive:
+    Type: Number
+    Description: Number of Days the records should live in DynamoBD
+    Default: 5
 
   ##### API Gateway Variables #####
   ApiGatewayId:
@@ -99,6 +112,12 @@ Parameters:
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
+    - Label:
+        default: "Batch Processing Configuration (Required)"
+      Parameters:
+      - RequestDynamoDBName
+      - RecordsDynamoDBName
+      - TimeToLive
     - Label:
         default: "Lambda Deployment Configuration (Required)"
       Parameters:
@@ -177,6 +196,9 @@ Resources:
           IV: !Ref MyriadEnvIV
           PASSPHRASE: !Ref MyriadEnvPassphrase
           SALT: !Ref MyriadEnvSaltValue
+          Myriad_Batch_Records_Table: !Ref RecordsDynamoDBName
+          Myriad_Batch_Request_Table: !Ref RequestDynamoDBName
+          TimeToLive: !Ref TimeToLive
 
   # Implement UpdateCFTStackFunction
   UpdateCFTStackFunction:
@@ -229,6 +251,46 @@ Resources:
                     Value: myriad/code
                   - Name: suffix
                     Value: Zephyr.Directory.Aws.zip
+  #### DynamoDB Tables -Resources
+  RecordDynamoDBName:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Ref RecordsDynamoDBName
+      BillingMode: PROVISIONED
+      ProvisionedThroughput: 
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      AttributeDefinitions:
+        - AttributeName: RecordsID
+          AttributeType: S
+        - AttributeName: RecordNumber
+          AttributeType: N
+      KeySchema:
+        - AttributeName: RecordsID
+          KeyType: HASH
+        - AttributeName: RecordNumber
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expireAt
+        Enabled: true
+
+  RequestsDynamoDBName:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Ref RequestDynamoDBName
+      BillingMode: PROVISIONED
+      ProvisionedThroughput: 
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      AttributeDefinitions:
+        - AttributeName: JobID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: JobID
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expireAt
+        Enabled: true
 
   # API Gateway - Resources
   SearchResource:
@@ -332,6 +394,7 @@ Resources:
             #set($searchScope = $method.request.querystring.searchScope)
             #set($searchBase = $method.request.querystring.searchBase)
             #set($searchValue = $util.escapeJavaScript($util.urlDecode($input.params('value'))))
+            #set($jobID = $method.request.querystring.jobID)
             {#if($domain != "")"domain": "$domain",#end#if($searchBase != "")"searchBase": "$searchBase",#end#if($searchScope != "")"searchScope": "$searchScope",#end#if($maxResults != "")"maxResults": "$maxResults",#end#if($nextToken != "")"nextToken": "$nextToken",#end"objectType": "$util.urlDecode($input.params('type'))",#foreach ($attr in $attrs)#if($foreach.count == 1)"attributes": [#end"$attr"#if($foreach.hasNext),#else],#end#end#if($maxPageSize != "")"config": { "maxPageSize": "$maxPageSize" },#end"searchValue": "$searchValue"}        
         IntegrationResponses:
         - StatusCode: 200          

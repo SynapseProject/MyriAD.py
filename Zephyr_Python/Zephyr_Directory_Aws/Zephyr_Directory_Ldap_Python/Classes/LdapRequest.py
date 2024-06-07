@@ -3,7 +3,6 @@ from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import LdapConfig
 from Zephyr_Directory_Ldap_Python.Classes.LdapCrypto import LdapCrypto
 from enum import Enum
 import ldap3
-import bonsai
 #GET MORE INFO ON THIS TYPE OF CLASS
 class ObjectType(Enum):
     User = 0
@@ -32,13 +31,15 @@ class SearchScopeType(Enum):
     Base = ldap3.BASE
     One = ldap3.LEVEL
     
-class SearchScopeType2(Enum):
-    All = bonsai.LDAPSearchScope.SUBTREE
-    Base = bonsai.LDAPSearchScope.BASE
-    One = bonsai.LDAPSearchScope.ONELEVEL
+# class SearchScopeType2(Enum):
+#     All = bonsai.LDAPSearchScope.SUBTREE
+#     Base = bonsai.LDAPSearchScope.BASE
+#     One = bonsai.LDAPSearchScope.ONELEVEL
 
 class LdapRequest():
     def __init__(self, data:dict):
+        self.jobID = data.get("jobID") if data.get("jobID") else None
+        self.recordsID = data.get("recordsID") if data.get("recordsID") else None
         self.object_type = data.get("objectType").capitalize() if data.get("objectType") else None
         self.domain = data.get("domain") if data.get("domain") else None
         self.searchValue = data.get("searchValue") if data.get("searchValue") else None
@@ -50,6 +51,8 @@ class LdapRequest():
         self.wildcardToken = data.get("wildcardSearch") if type(data.get("wildcardSearch")) == bool else None
         self.attributes = data.get("attributes") if data.get("attributes") else None
         self.raise_exceptions = data.get("raise_exceptions") if data.get("raise_exceptions")!= None else True
+        self.Timestamp = data.get("Timestamp") if data.get("Timestamp") else None
+        self.expireAt = data.get("expireAt") if data.get("expireAt") else None
         self.config = data.get("config") if data.get("config") else None
         self.crypto = data.get("crypto") if data.get("crypto") else None
         self.ping = data.get("ping") if data.get("ping") else None
@@ -97,11 +100,11 @@ class LdapRequest():
         if self.searchScope == None:
             pass
         elif self.searchScope == "All":
-            self.searchScope = SearchScopeType2.All
+            self.searchScope = SearchScopeType.All
         elif self.searchScope == "Base":
-            self.searchScope = SearchScopeType2.Base
+            self.searchScope = SearchScopeType.Base
         elif self.searchScope == "One":
-            self.searchScope = SearchScopeType2.One
+            self.searchScope = SearchScopeType.One
         else:
             pass
         return self.searchScope

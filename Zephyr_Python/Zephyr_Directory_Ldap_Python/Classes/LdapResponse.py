@@ -16,7 +16,6 @@ class LdapResponse():
             self.searchBase = response.get("searchBase") if response.get("searchBase") else None
             self.searchBases = response.get("searchBases") if response.get("searchBases") else None
             self.searchFilter = response.get("searchFilter") if response.get("searchFilter") else None
-            self.searchFilters = response.get("searchFilters") if response.get("searchFilters") else None
             self.message = response.get("message") if response.get("message") else {}
             self.status = response.get('status') if response.get('status') else None
             self.totalRecords = response.get("totalRecords") if response.get("totalRecords") else 0

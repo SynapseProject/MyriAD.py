@@ -1,10 +1,3 @@
 {
-    "objectType": "Computer",
-    "searchValue": "BP1HULDC001",
-    "attributes": [
-        "userCertificate"
-    ],
-    "config": {
-        "TokenType": "Server"
-    }
+	"searchValue": "(sAMAccountName=wagug0)"
 }

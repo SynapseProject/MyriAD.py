@@ -5,7 +5,7 @@ from socket import gethostname
 from Zephyr_Directory_Ldap_Python.Utilities.SidUtils import SidUtils
 from Zephyr_Directory_Ldap_Python.Classes.LdapCrypto import LdapCrypto
 from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import LdapRequest, ObjectType
-from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import LdapConfig, LdapAttributeTypes
+from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import LdapConfig, LdapAttributeTypes, OutputTypes
 from Zephyr_Directory_Ldap_Python.Utilities.JsonTools import JsonTools
 from Zephyr_Crypto_Python.Rijndael import Rijndael
 
@@ -86,15 +86,23 @@ class LdapUtils():
 
         if target.followReferrals == None:
             target.followReferrals = source.followReferrals
-
         if target.IgnoreWarnings == None:
             target.IgnoreWarnings = source.IgnoreWarnings
             
         if target.returnTypes == None:
             target.returnTypes = source.returnTypes
-        
+
         if target.Token_type == None:
             target.Token_type = source.Token_type
+
+        if target.outputType == None:
+            target.outputType = source.outputType
+            
+        if target.batch == None:
+            target.batch = source.batch
+        
+        if target.retrieval == None:
+            target.retrieval = source.retrieval
 
         #Look into making it on liner.
         if source.returnTypes != None:
@@ -159,13 +167,37 @@ class LdapUtils():
         if Config.ssl == None:
             Config.ssl = False
         if Config.port == None:
+            # Config.port = Config.ssl == True ? 636 : 389;???????
             Config.port = 636 if Config.ssl == True  else 389
         if Config.maxPageSize == None:
-                Config.maxPageSize = 512
+            Config.maxPageSize = 512
+        if Config.batch == None:
+            Config.batch = False
+        if Config.retrieval == None:
+            Config.retrieval = False
+        if Config.outputType == None:
+            Config.outputType = OutputTypes.Json
         # print(Config.server_name, "=>", request.Config().server_name)
         # Config.Print()
         return Config
+    
+    def ApplyDefaulsAndValidate_config(config: LdapConfig):
+        if config == None:
+            config = LdapConfig
 
+        if config.batch == None:
+            config.batch = False
+
+        if config.retrieval == None:
+            config.retrieval = False
+        
+        if config.Token_type == None:
+            config.Token_type = "Server"
+        
+        if config.outputType == None:
+            config.outputType = OutputTypes.Json
+
+        return config
     def ApplyDefaultandValidate(crypto: LdapCrypto):
         if crypto == None:
             crypto = LdapCrypto
@@ -193,7 +225,6 @@ class LdapUtils():
         request.crypto = LdapUtils.ApplyDefaultandValidate(request.Crypto())
 
         try:
-            # print(request.config.password)
             request.config.password = Rijndael().Decrypt(request.config.password, request.crypto.passphrase, request.crypto.salt, request.crypto.iv)
         except Exception as e:
             pass
@@ -290,4 +321,3 @@ class LdapUtils():
             searchValue = LdapUtils.GetSearchString(request, searchValue, searchBase, True)
             # raise Exception("Error: Search Value is not properly formatted")
         return searchValue
-    
