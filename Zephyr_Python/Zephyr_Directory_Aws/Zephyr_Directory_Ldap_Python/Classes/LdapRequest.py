@@ -1,6 +1,8 @@
 from Zephyr_Directory_Ldap_Python.Classes import *
+from Zephyr_Crypto_Python.Rijndael import Rijndael
 from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import LdapConfig
 from Zephyr_Directory_Ldap_Python.Classes.LdapCrypto import LdapCrypto
+from Zephyr_Directory_Ldap_Python.Classes.LdapResponse import LdapResponse
 from enum import Enum
 import ldap3
 #GET MORE INFO ON THIS TYPE OF CLASS
@@ -120,3 +122,57 @@ class LdapRequest():
         if self.ping == "NoEcho":
             ping = PingType.NoEcho
         return ping
+    
+    def toJson_Ping_or_Crypto(response: LdapResponse):
+        if response.success == True:
+            dictionary = {"success": response.success, "message": str(response.message)}
+        return dictionary
+
+    def MyriAD_Search(self, response:LdapResponse, cryptography: Rijndael, test_config: LdapConfig, lambdaClient, data, isPing: bool):
+        from Zephyr_Directory_Ldap_Python.Ldap_Server import LDapServer
+        from Zephyr_Directory_Ldap_Python.Utilities.LdapUtils import LdapUtils 
+        from Zephyr_Directory_Ldap_Python.Utilities.DynamoDBTools import DynamoDBTools 
+        if test_config.batch == True and test_config.retrieval == False:
+            response = DynamoDBTools.InvokeLambda(lambdaClient, data)
+        elif test_config.batch == False and test_config.retrieval == True:
+            response = DynamoDBTools.Batch_Retrieval(data, self)
+        else:
+            if self.Crypto().text != None:
+                crypto = LdapUtils.ApplyDefaultandValidate(crypto=self.Crypto())
+                response.message = cryptography.Encrypt(crypto.text, crypto.passphrase, crypto.salt, crypto.iv)
+                response = LdapRequest.toJson_Ping_or_Crypto(response)
+            elif isPing:
+                response.message = "Hello From MyriAD."
+                response = LdapRequest.toJson_Ping_or_Crypto(response)
+            else:
+                try:
+                    print("In Try Block:\n")
+                    LdapUtils.ApplyDefaultsAndValidate(self)
+                    searchstring = LdapUtils.GetSearchString(self)
+                    ldap = LDapServer(self.config.server_name, self.config.port, self.config.ssl, self.config.maxRetries, self.config.maxPageSize, self.config.followReferrals, self.config.returnTypes)
+                    if self.config.Token_type == "Server" or self.config.Token_type == "Client" or self.config.server_name_present == True:
+                        if self.config.batch == True and self.config.retrieval == True:
+                            partitionKey = data["jobID"]
+                            timestamp = data["Timestamp"]
+                            RecordsID = data["recordsID"]
+                            unix = data["expireAt"]
+                            DynamoDBTools.add_entry(partitionKey, timestamp, unix, RecordsID)
+                        ldap.Connect(self.config, request=self)
+                        self.object_type = self.ObjectType()
+                        self.searchScope = self.SearchScope()
+                        self.config.outputType = self.config.OutputType()
+                        response = ldap.Search(request=self, searchFilter=searchstring, attributes=self.attributes, searchScope=self.searchScope, maxResults=self.maxResults, nextTokenStr=self.nextToken)
+                        ldap.Disconnect()
+                    else:
+                        raise Exception("TokenType must be set to Server or Client or Server/Client")
+                except Exception as e:
+                    response = ldap.ReturnError(e, self.config, request=self)
+                    if self.config.batch == True and self.config.retrieval == True:
+                        partitionKey = data["jobID"]
+                        timestamp = data["Timestamp"]
+                        RecordsID = data["recordsID"]
+                        DynamoDBTools.add_entry(partitionKey, timestamp, RecordsID)
+                if self.config.batch == True and self.config.retrieval == True:
+                    DynamoDBTools.update_entry(response, data)
+            return response
+                

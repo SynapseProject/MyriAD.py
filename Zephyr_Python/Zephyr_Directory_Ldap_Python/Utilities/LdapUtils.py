@@ -2,10 +2,10 @@ import os
 from uuid import UUID
 from re import findall, compile, IGNORECASE
 from socket import gethostname
+from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import LdapRequest, ObjectType
 from Zephyr_Directory_Ldap_Python.Utilities.SidUtils import SidUtils
 from Zephyr_Directory_Ldap_Python.Classes.LdapCrypto import LdapCrypto
-from Zephyr_Directory_Ldap_Python.Classes.LdapRequest import LdapRequest, ObjectType
-from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import LdapConfig, LdapAttributeTypes, OutputTypes
+from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import LdapConfig, OutputTypes
 from Zephyr_Directory_Ldap_Python.Utilities.JsonTools import JsonTools
 from Zephyr_Crypto_Python.Rijndael import Rijndael
 

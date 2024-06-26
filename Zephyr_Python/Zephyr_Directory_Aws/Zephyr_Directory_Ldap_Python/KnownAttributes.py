@@ -4,6 +4,7 @@ from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import LdapAttributeTypes
 class KnownAttributes():
     def __init__(self):
         self.DefaultTypes = MappingProxyType({
+                "msExchBlockedSendersHash": LdapAttributeTypes.BytesArray,
                 "accountExpires": LdapAttributeTypes.Number ,
                 "accountNameHistory": LdapAttributeTypes.StringArray ,
                 "aCSAggregateTokenRatePerUser": LdapAttributeTypes.Number ,

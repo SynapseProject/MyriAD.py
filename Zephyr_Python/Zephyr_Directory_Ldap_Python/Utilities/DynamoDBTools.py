@@ -4,7 +4,6 @@ from uuid import uuid4
 from sys import getsizeof
 from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.conditions import Attr
-import random
 import time
 import boto3
 import json

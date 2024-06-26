@@ -1,5 +1,3 @@
-import sys
-import json
 from Zephyr_Directory_Ldap_Python.Classes.LdapObjects import LdapObject
 from enum import Enum
 

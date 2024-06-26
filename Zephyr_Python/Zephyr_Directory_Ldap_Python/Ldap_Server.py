@@ -2,8 +2,6 @@ from sys import maxsize, byteorder
 from binascii import hexlify
 from base64 import b64decode, b64encode
 from threading import Thread
-from collections import deque
-from itertools import islice
 from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, SUBTREE, NO_ATTRIBUTES, ALL_OPERATIONAL_ATTRIBUTES
 from ldap3.core.exceptions import LDAPSocketOpenError, LDAPReferralError, LDAPException
 from Zephyr_Directory_Ldap_Python.Classes import LdapConfig, LdapRequest, LdapResponse, LdapAttributeTypes
@@ -17,9 +15,7 @@ from Zephyr_Directory_Ldap_Python.Utilities.XMLTools import XMLTools
 from Zephyr_Directory_Ldap_Python.Utilities.CSVTools import CSVTools
 from Zephyr_Directory_Ldap_Python.KnownAttributes import KnownAttributes
 from uuid import UUID
-# import bonsai
 import struct
-import os
 
 class Options:
     def __init__(self, timeLimit, maxResults, serverTimeLimit, referralfollowing):

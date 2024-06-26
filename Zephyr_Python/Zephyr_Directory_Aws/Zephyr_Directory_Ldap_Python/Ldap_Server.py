@@ -2,9 +2,7 @@ from sys import maxsize, byteorder
 from binascii import hexlify
 from base64 import b64decode, b64encode
 from threading import Thread
-from collections import deque
-from itertools import islice
-from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, SUBTREE, NO_ATTRIBUTES, ALL_OPERATIONAL_ATTRIBUTES
+from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, SUBTREE, NO_ATTRIBUTES
 from ldap3.core.exceptions import LDAPSocketOpenError, LDAPReferralError, LDAPException
 from Zephyr_Directory_Ldap_Python.Classes import LdapConfig, LdapRequest, LdapResponse, LdapAttributeTypes
 from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import OutputTypes
@@ -17,9 +15,7 @@ from Zephyr_Directory_Ldap_Python.Utilities.XMLTools import XMLTools
 from Zephyr_Directory_Ldap_Python.Utilities.CSVTools import CSVTools
 from Zephyr_Directory_Ldap_Python.KnownAttributes import KnownAttributes
 from uuid import UUID
-# import bonsai
 import struct
-import os
 
 class Options:
     def __init__(self, timeLimit, maxResults, serverTimeLimit, referralfollowing):
@@ -83,35 +79,10 @@ class LDapServer:
                     self._CONNECTED = True
             except LDAPSocketOpenError as e:
                 attempts += 1
-    
-    # def Connect_bonsai(self, config, request):
-    #     # Domain_MAPPINGS = JsonTools().Deserialize(os.environ["CD2_CONFIG"])
-    #     flag = False
-    #     attempts = 0
-    #     self._URL = self.ToString()
-    #     while attempts <= self._MAXRETRIES and flag == False:
-    #         try:
-    #             self.server = bonsai.LDAPClient(self._URL, self._USESSL)
-    #             self.server.ca_cert = '/opt/BP Root CA 19.crt'
-    #             self.server.set_auto_page_acquire(False)
-    #             self.server.set_credentials("SIMPLE", user= config.username, password= config.password)
-    #             self.conn = self.server.connect()
-    #             if self.conn:
-    #                 self._CONNECTED = True
-    #                 flag = True
-    #         except LDAPSocketOpenError as e:
-    #             attempts += 1
 
     def Disconnect(self):
         if self._CONNECTED:
             self.conn.unbind()
-
-    # def Disconnect_bonsai(self):
-    #     if self._CONNECTED:
-    #         self.conn.close()
-
-    # def Bind(self):
-    #     self.conn.bind()
 
     def CheckAttributes(self, attributes, response: LdapResponse, config: LdapConfig):
         attributes_ = []
@@ -126,25 +97,6 @@ class LDapServer:
             response.status = StatusCode.SuccessWithWarnings.name
             response.message["LDAPInvalidAttributeType"] = f"Invalid Attribute(s): {', '.join(error_attributes)}"
         return attributes_, response
-    
-    # def CheckAttributes2(self, attributes, keylist, response: LdapResponse, config: LdapConfig, present:bool):
-    #     attributes_ = deque()
-    #     error_attributes = deque()
-    #     if attributes == None and present == False:
-    #         attributes = deque(keylist)
-    #     if attributes == None and present == True:
-    #         attributes = deque()
-    #     for attribute in attributes:
-    #         if attribute == "dn":
-    #             continue
-    #         if attribute in keylist:
-    #             attributes_.append(attribute)
-    #         else:
-    #             error_attributes.append(attribute)
-    #     if len(error_attributes) > 0 and config.IgnoreWarnings == False:
-    #         response.status = StatusCode.SuccessWithWarnings.name
-    #         response.message["LDAPInvalidAttributeType"] = f"Invalid Attribute(s): {', '.join(error_attributes)}"
-    #     return attributes_, response
 
     def AddValueWithUnknownType(self, rec, key, attribute):
         try:
@@ -575,273 +527,6 @@ class LDapServer:
         elif request.config.outputType == OutputTypes.CSV:
             response = CSVTools().convert_to_csv(response["records"])
         return response
-    
-    # def Multiple_Searches_bonsai(self, results, searchBase, searchValue, attributes, scope, ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, paged: False):
-    #     if not paged == True:
-    #         results.append(self.conn.search(base=searchBase, scope=scope, filter_exp=searchValue, attrlist=attributes, timeout=ServerTimeLimit, sizelimit=maxSearchResults))
-    #     else:
-    #         x = self.conn.paged_search(base=searchBase, scope=scope, filter_exp=searchValue, attrlist=attributes, timeout=ServerTimeLimit, sizelimit=maxSearchResults, page_size=maxPageSize)
-    #         results.append(x)
-
-    # def Search2(self, request: LdapRequest, searchFilter: str, attributes = None, searchScope: SearchScopeType2 = None, maxResults: int = maxsize, nextTokenStr = None):
-    #     response = LdapResponse()
-    #     entries = deque()
-    #     parsed_entries = None
-    #     Pick_up_here = 1
-    #     continueToken = "-00"
-    #     if nextTokenStr != None:
-    #         # Decoding for Client Based Token Types
-    #         try:
-    #             nextTokenStr = b64decode(nextTokenStr).decode()
-    #             nextTokenStr_Split = nextTokenStr.rsplit("-", 1)
-    #             nextTokenStr = nextTokenStr_Split[0]
-    #             Pick_up_here = int(nextTokenStr_Split[1])
-    #         except:
-    #             nextTokenStr = nextTokenStr
-    #     try:
-    #         if searchFilter == None or searchFilter == '':
-    #             raise Exception("Search Filter Not Provided")
-    #         if not self.conn or not self._CONNECTED:
-    #             raise LDAPSocketOpenError(f"Server '{self._SERVER}' Is not connected")
-    #         # if not self.conn.bound:
-    #         request.config.IgnoreWarnings = SidUtils().Convert_Str_to_Bool(ignoreWarnings=request.config.IgnoreWarnings)
-    #         rootDSE = self.server.get_rootDSE()['namingContexts'][2] if "BP1" in self._SERVER else self.server.get_rootDSE()['namingContexts'][0]
-    #         request.searchBase = rootDSE if request.searchBase == None else request.searchBase
-    #         # if request.searchBase == None:
-    #         #     request.searchBase =rootDSE
-    #         response.status = StatusCode.Success.name
-    #         searchFilter_list = [searchFilter]
-    #         searchBase_list = [request.searchBase]
-    #         if request.MultipleSearches != None:
-    #             # Validate each entry in the Union Property
-    #             for i  in request.MultipleSearches:
-    #                 searchBase_flag = 'searchBase' in i.keys()
-    #                 searchValue_flag = 'searchValue' in i.keys()
-    #                 if searchBase_flag == False and searchValue_flag == True:
-    #                     i['searchBase'] = request.searchBase
-    #                 elif searchBase_flag == True and searchValue_flag == False:
-    #                     i['searchValue'] = searchFilter
-    #                 # ADD Search Value Generator
-    #                 i['searchValue'] = LdapUtils.CheckforError(request, i['searchValue'], i['searchBase'])
-    #                 searchBase_list.append(i["searchBase"])
-    #                 searchFilter_list.append(i['searchValue'])
-    #         results = []
-    #         options = Options(0,maxResults,3600,self._FOLLOWREFERRALS)
-    #         while True:
-    #             # maxPageSize = self._MAXPAGESIZE
-    #             maxSearchResults = maxResults if maxResults != None else 9999
-    #             # if maxResults != None:
-    #             #     maxSearchResults = maxResults
-    #             print(maxSearchResults - len(entries), self._MAXPAGESIZE)
-    #             maxPageSize = maxSearchResults-len(entries) if maxSearchResults - len(entries) < self._MAXPAGESIZE else self._MAXPAGESIZE
-    #             # if maxSearchResults - len(entries) < self._MAXPAGESIZE:
-    #             #     maxPageSize = maxSearchResults-len(entries)
-    #             scope = searchScope.value if searchScope != None else bonsai.LDAPSearchScope.SUBTREE
-    #             # if searchScope != None:
-    #             #     scope = searchScope.value
-    #             # entry_list = []
-    #             if request.maxResults == None:
-    #                 # User wants MyriAD to return all records that fit the LDAP searchFilter
-    #                 results.append(self.conn.search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults))
-    #                 if request.MultipleSearches != None:
-    #                     for i in request.MultipleSearches:
-    #                         # Multi Threading for Multiple Searches, the new entries will be added to the results list
-    #                         thread_obj = Thread(target=self.Multiple_Searches_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, maxPageSize, nextTokenStr, False))
-    #                         thread_obj.start()
-    #                         thread_obj.join()
-    #                 # for i in results:
-    #                 #     for j in i:
-    #                 #         entry_list.append(j)
-    #                 entry_list = [j for i in results for j in i]
-    #                 key_list = list(entry_list[0].keys()) if entry_list else []
-    #                 attributes,response = self.CheckAttributes2(attributes, key_list, response, request.config, request.present)
-    #                 for i in entry_list:
-    #                     entry = {}
-    #                     entry["dn"] = str(i["dn"])
-    #                     attributez = {}
-    #                     for j in attributes:
-    #                         try:
-    #                             attributez[j] = i[j] if len(i[j]) > 1 else i[j][0]
-    #                             # if len(i[j]) > 1:
-    #                             #     attributez[j] = i[j]
-    #                             # else:
-    #                             #     attributez[j] = i[j][0]
-    #                         except:
-    #                             pass
-    #                     entry["attributes"] = attributez
-    #                     entries.append(entry)
-    #             else:
-    #                 if nextTokenStr == None:
-    #                     # MaxResults has a value, but no nextoken is passed in
-    #                     results.append(self.conn.paged_search(base=request.searchBase, scope=scope, filter_exp=searchFilter, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults, page_size=request.maxResults))
-    #                     entry_list = [i for i in results[0]]
-    #                     if request.MultipleSearches != None:
-    #                         # entry_list = [i for i in results[0]]
-    #                         currentRecords = len(entry_list)
-    #                         iteration = 2
-    #                         recordsLeft = maxResults - currentRecords
-    #                         if recordsLeft < maxResults and currentRecords != maxResults:
-    #                             for i in request.MultipleSearches:
-    #                                 recordsLeft = maxResults - currentRecords
-    #                                 if recordsLeft < maxResults and currentRecords != maxResults:
-    #                                     # Multi Threading for Multiple Searches, the new entries will be added to the results list
-    #                                     thread_obj = Thread(target=self.Multiple_Searches_bonsai, args=(results, i['searchBase'], i['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, recordsLeft, nextTokenStr, True))
-    #                                     PossibleNextToken = str(recordsLeft)
-    #                                     thread_obj.start()
-    #                                     thread_obj.join()
-    #                                     entry_list = entry_list + [i for i in results[-1]]
-    #                                     currentRecords = len(entry_list)
-    #                                     if results[-1].acquire_next_page():
-    #                                         continueToken = f"-0{iteration}"
-    #                                     iteration += 1
-    #                                 else:
-    #                                     if results[-1].acquire_next_page():
-    #                                         continueToken = f"-0{iteration-1}"
-    #                                     else:
-    #                                         PossibleNextToken = str(recordsLeft)
-    #                                         continueToken = f"-0{iteration}"
-    #                                         PossibleNextToken = PossibleNextToken + continueToken
-    #                                     break
-    #                                 PossibleNextToken = PossibleNextToken + continueToken
-    #                         else:
-    #                             if results[0].acquire_next_page():
-    #                               continueToken = f"-01"
-    #                               PossibleNextToken = str(currentRecords) + continueToken
-    #                             else:
-    #                                 continueToken = f"-02"
-    #                                 PossibleNextToken = str(recordsLeft) + continueToken
-    #                     else:
-    #                         # Union is not present, meaning its just an ordinary search
-    #                         if results[0].acquire_next_page():
-    #                             currentRecords = len(entry_list)
-    #                             continueToken = f"-01"
-    #                             PossibleNextToken = str(currentRecords) + continueToken
-    #                     # entry_list = [j for i in results for j in i]
-    #                     key_list = list(entry_list[0].keys()) if entry_list else []
-    #                     attributes,response = self.CheckAttributes2(attributes, key_list, response, request.config, request.present)
-    #                     for i in entry_list:
-    #                         entry = {}
-    #                         entry["dn"] = str(i["dn"])
-    #                         attributez = {}
-    #                         for j in attributes:
-    #                             try:
-    #                                 attributez[j] = i[j] if len(i[j]) > 1 else i[j][0]
-    #                                 # if len(i[j]) > 1:
-    #                                 #     attributez[j] = i[j]
-    #                                 # else:
-    #                                 #     attributez[j] = i[j][0]
-    #                             except:
-    #                                 pass
-    #                         entry["attributes"] = attributez
-    #                         entries.append(entry)
-    #                 else:
-    #                     # MaxResults has a value and a nextoken is passed in
-    #                     maxResults = request.maxResults
-    #                     maxSearchResults = maxResults
-    #                     # Pick_up_Here is used to determine where the previous search finished, if Pick_up_Here is > 1 that means that the search finished in a 
-    #                     # Multiple Searches Entry
-    #                     if Pick_up_here > 1:
-    #                         results.append(self.conn.paged_search(base=request.MultipleSearches[Pick_up_here-2]["searchBase"], scope=scope, filter_exp=request.MultipleSearches[Pick_up_here-2]["searchValue"], attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults+int(nextTokenStr), page_size=maxResults+int(nextTokenStr)))
-    #                     else:
-    #                         results.append(self.conn.paged_search(base=request.searchBase, scope=scope, filter_exp=request.searchValue, attrlist=request.attributes, timeout= options.ServerTimeLimit, sizelimit=maxSearchResults+int(nextTokenStr), page_size=maxResults+int(nextTokenStr)))
-    #                     entry_list = [i for i in results[0]]
-    #                     entry_list = entry_list[int(nextTokenStr):]
-    #                     if request.MultipleSearches != None:
-    #                         # entry_list = [i for i in results[0]]
-    #                         currentRecords = len(entry_list)
-    #                         iteration = Pick_up_here
-    #                         if not results[0].acquire_next_page():
-    #                             iteration = Pick_up_here
-    #                             for i in range(Pick_up_here-1, len(request.MultipleSearches)):
-    #                                 recordsLeft = maxResults - currentRecords
-    #                                 if recordsLeft < maxResults and currentRecords != maxResults:
-    #                                     # Multi Threading for Multiple Searches, the new entries will be added to the results list
-    #                                     thread_obj = Thread(target=self.Multiple_Searches_bonsai, args=(results, request.MultipleSearches[i]['searchBase'], request.MultipleSearches[i]['searchValue'], attributes, scope, options.ServerTimeLimit, maxSearchResults, recordsLeft, None, True))
-    #                                     Records_gone_through = str(recordsLeft)
-    #                                     thread_obj.start()
-    #                                     thread_obj.join()
-    #                                     entry_list = entry_list + [i for i in results[-1]]
-    #                                     continueToken = f"-0{iteration}"
-    #                                     currentRecords = len(entry_list)
-    #                                     iteration += 1
-    #                                     if not results[-1].acquire_next_page() and i == len(request.MultipleSearches)-1:
-    #                                         PossibleNextToken = None
-    #                                         break
-    #                                     if results[-1].acquire_next_page():
-    #                                         continueToken = f"-0{iteration}"
-    #                                 else:
-    #                                     if results[-1].acquire_next_page():
-    #                                         continueToken = f"-0{iteration}"
-    #                                     else:
-    #                                         Records_gone_through = str(recordsLeft)
-    #                                         continueToken = f"-0{iteration+1}"
-    #                                     try:
-    #                                         PossibleNextToken = Records_gone_through + continueToken
-    #                                     except:
-    #                                         PossibleNextToken = str(recordsLeft) + continueToken
-    #                                     break
-    #                                 PossibleNextToken = Records_gone_through + continueToken
-    #                                 print(i)
-    #                         else:
-    #                             if results[0].acquire_next_page():
-    #                                 continueToken = f"-0{Pick_up_here}"
-    #                                 PossibleNextToken = str(currentRecords+int(nextTokenStr)) + continueToken
-    #                             else:
-    #                                 continueToken = f"-0{Pick_up_here+1}"
-    #                                 PossibleNextToken = str(recordsLeft) + continueToken
-    #                     # entry_list = [j for i in results for j in i]
-    #                     key_list = list(entry_list[0].keys()) if entry_list else []
-    #                     attributes,response = self.CheckAttributes2(attributes, key_list, response, request.config, request.present)
-    #                     for i in entry_list:
-    #                         entry = {}
-    #                         entry["dn"] = str(i["dn"])
-    #                         attributez = {}
-    #                         for j in attributes:
-    #                             try:
-    #                                 attributez[j] = i[j] if len(i[j]) > 1 else i[j][0]
-    #                                 # if len(i[j]) > 1:
-    #                                 #     attributez[j] = i[j]
-    #                                 # else:
-    #                                 #     attributez[j] = i[j][0]
-    #                             except:
-    #                                 pass
-    #                         entry["attributes"] = attributez
-    #                         entries.append(entry)
-    #             try:
-    #                 #Figure out a way to detect there is no nextToken
-    #                 if not "-00" in PossibleNextToken:
-    #                     nextTokenStr  = PossibleNextToken
-    #                 else:
-    #                     nextTokenStr = None
-    #             except:
-    #                 nextTokenStr = None
-    #             if nextTokenStr == None:
-    #                 break
-    #             if maxSearchResults <= len(entries):
-    #                 break
-    #         # response = self.ParseResults(entries, response)
-    #         response = self.ParseResults(entries, response)
-    #         response.nextToken = b64encode(nextTokenStr.encode()).decode() if nextTokenStr != None else None
-    #         # if nextTokenStr != None:
-    #         #     response.nextToken = nextTokenStr
-    #     except Exception as e:
-    #         response.message[e.__class__.__name__] = f"{e}"
-    #         response.success = False
-    #         response.status = StatusCode.Failure.name
-    #     response.server = self._SERVER
-    #     if request.MultipleSearches != None:
-    #         response.searchBases = searchBase_list
-    #         response.searchFilters = searchFilter_list
-    #     else:
-    #         response.searchBase = request.searchBase
-    #         response.searchFilter = searchFilter
-
-    #     response = self.toJson(response=response, request=request)
-    #     if request.config.outputType == OutputTypes.XML:
-    #         response = XMLTools().json_to_xml(response)
-    #     elif request.config.outputType == OutputTypes.CSV:
-    #         response = CSVTools().convert_to_csv(response["records"])
-    #     return response
     
     def ReturnError(self, e: Exception, config: LdapConfig, request: LdapRequest):
         returning_error = True
