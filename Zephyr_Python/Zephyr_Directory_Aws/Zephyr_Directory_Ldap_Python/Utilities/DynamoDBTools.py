@@ -10,6 +10,7 @@ import json
 import os
 
 class DynamoDBTools():
+    #
     def add_entry(partitionKey, sortKey, unix, RecordsID = ""):
         dynamodb = boto3.resource('dynamodb')
         dynamoTableName = os.environ['Myriad_Batch_Request_Table']
@@ -92,11 +93,11 @@ class DynamoDBTools():
     def InvokeLambda(lambdaClient, event):
         event["config"]["batch"] = True
         event["config"]["retrieval"] = True
+        # Generates JobID/RecordID, Timestamp, and expireAT value for auto deletion
         jobID = uuid4()
         RecordsID = uuid4().hex[0:6]
         timestamp = datetime.now()
         unix_time = int(time.time()+int(os.environ["TimeToLive"])* 24 * 60 * 60)
-        print(unix_time)
         payload_input = {
             "jobID": f"{jobID}",
             "recordsID": f"{RecordsID}",
@@ -107,7 +108,7 @@ class DynamoDBTools():
         event["recordsID"] = f"{RecordsID}"
         event["Timestamp"] =  f"{timestamp}"
         event["expireAt"] = unix_time
-        print(json.dumps(event))
+        # Invokes Lambda function to start Batch Processing
         response = lambdaClient.invoke(
         FunctionName = 'arn:aws:lambda:us-east-2:801115126580:function:myriad-core-dev',
         InvocationType= 'Event',

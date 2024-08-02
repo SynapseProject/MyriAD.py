@@ -31,7 +31,5 @@ class CSVTools():
                 csv_string = csvfile.getvalue()
         except Exception as e:
             print("Error:", e)
-        # df = pd.json_normalize(response)
-        # response = df.to_csv(index=False)
         response = csv_string
         return response

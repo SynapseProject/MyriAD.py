@@ -21,6 +21,6 @@ def lambda_handler(event, context):
     request = LdapRequest(event)
     test_config = LdapUtils.ApplyDefaulsAndValidate_config(request.Config())
     isPing = True if request.ping != None else False
-    # Proceed to seqrch LDAP Search
+    # Proceed to LDAP Search Function
     response = LdapRequest.MyriAD_Search(request,response,cryptography,test_config, lambdaClient, event, isPing)
     return response

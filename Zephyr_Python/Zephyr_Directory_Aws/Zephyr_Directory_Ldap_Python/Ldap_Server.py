@@ -64,9 +64,6 @@ class LDapServer:
         else:
             return f"ldap://{self._SERVER}:{self._PORT}"
         
-    # def Bind(self, config:LdapConfig):
-    #     self.conn.bind(self.srv)
-        
     def Connect(self, config, request):
         flag = False
         attempts = 0
@@ -111,7 +108,6 @@ class LDapServer:
 
     def ParseResults(self, entries, response: LdapResponse):
         response.records = entries
-
         for record in response.records:
             try:
                 attributes = record['attributes']
@@ -158,18 +154,10 @@ class LDapServer:
                                 i = attribute["encoded"].encode()
                                 i = b64decode(i)
                                 attributes[key] = str(UUID(bytes_le=i)) if byteorder == "little" else str(UUID(bytes=i))
-                                # if byteorder == "little":
-                                #     attributes[key] = str(UUID(bytes_le=i))
-                                # else:
-                                #     attributes[key] = str(UUID(bytes=i))
                             else:
                                 attributes[key] = str(UUID(attribute))
                         except:
                             attributes[key] = str(UUID(bytes_le=attribute)) if byteorder == "little" else str(UUID(bytes=attribute)) 
-                            # if byteorder == "little":
-                            #     attributes[key] = str(UUID(bytes_le=attribute))
-                            # else:
-                            #     attributes[key] = str(UUID(bytes=attribute))                          
                     elif attrType == LdapAttributeTypes.GuidArray or attrType == "GuidArray":
                         guid_list = list()
                         if type(attribute) == str:
@@ -182,7 +170,6 @@ class LDapServer:
                                             if "encoded" in i[j]:
                                                 x = i[j]["encoded"].encode()
                                                 x = b64decode(x)
-                                                # guid_list.append(str(UUID(bytes_le=x)) if byteorder == "little" else str(UUID(bytes=x)))
                                                 if byteorder == "little":
                                                     guid_list.append(str(UUID(bytes_le=x)))
                                                 else:
@@ -202,7 +189,6 @@ class LDapServer:
                             except:
                                 attributes[key] = SidUtils.New_Bytes_To_SID(SidUtils.New_String_to_Bytes(attribute))
                     elif attrType == LdapAttributeTypes.SidArray or attrType == "SidArray":
-                        # attributes[key] = [SidUtils.New_Bytes_To_SID(attribute)] if type(attribute) == bytes else [SidUtils.New_Bytes_To_SID(SidUtils.New_String_to_Bytes(attribute))]
                         try:
                             if type(attribute) == bytes:
                                 attributes[key] = [SidUtils.New_Bytes_To_SID(attribute)]
@@ -215,22 +201,11 @@ class LDapServer:
                                     x = i["encoded"].encode()
                                     x = b64decode(x)
                                     SID_list.append(SidUtils.New_Bytes_To_SID(x))
-                                    # guid_list.append(str(UUID(bytes_le=x)) if byteorder == "little" else str(UUID(bytes=x)))
                             attributes[key] = list(SID_list)
                     elif attrType == LdapAttributeTypes.String or attrType == "String":
                         attributes[key] = str(attribute[0]) if type(attribute) == list else str(attribute)
-                        # if type(attribute) == list or type(attribute) == bonsai.ldapvaluelist.LDAPValueList:
-                        #     attributes[key] = str(attribute[0])
-                        # else:
-                        #     attributes[key] = str(attribute)
                     elif attrType == LdapAttributeTypes.StringArray or attrType == "StringArray":
                         attributes[key] = attribute if type(attribute) == list else [attribute]
-                        # if type(attribute) == list or type(attribute) == bonsai.ldapvaluelist.LDAPValueList:
-                        #     attributes[key] = attribute
-                        # else:
-                        #     stringarray = []
-                        #     stringarray.append(attribute)
-                        #     attributes[key] = stringarray
                     elif attrType == LdapAttributeTypes.Number or attrType == "Number":
                         try:
                             attributes[key] = int(attribute)
@@ -243,7 +218,6 @@ class LDapServer:
                     elif attrType == LdapAttributeTypes.BooleanArray or attrType == "BooleanArray":
                         attributes[key] = [attribute]
                     else:
-                        # attributes[key] = str(attribute)
                         self.AddValueWithUnknownType(rec=attributes, key=key,attribute=attribute)
             except LDAPReferralError as e:
                 print("------", e)
@@ -261,7 +235,6 @@ class LDapServer:
             
     # Look into Return Token when search is complete but still returning next Token.
     def toJson(self, response: LdapResponse, request:LdapRequest, returning_error:bool = False):
-        # dictionary = {"success": response.success, "server": f"{response.server}:{self._PORT}", "searchBase": response.searchBase, "searchFilter": response.searchFilter, "message": str(response.message), "NexToken": response.nextToken, "totalRecords": response.totalRecords, "records": response.records}
         if response.searchBases != None and response.searchFilters != None and not returning_error:
             if request.config.IgnoreWarnings == True or len(response.message) == 0:
                 if response.nextToken != None:
@@ -286,7 +259,6 @@ class LDapServer:
                     dictionary = {"statusCode": 200, "success": response.success, "server": self.ToString(), "searchBase": response.searchBase, "searchFilter": response.searchFilter, "status": response.status, "message": self.format_Message(response.message), "totalRecords": response.totalRecords, "records": response.records}
         else:
             dictionary = {"statusCode": 200, "success": response.success, "server": response.server, "status": response.status, "message": self.format_Message(response.message)}
-
         return dictionary
         
     def Multiple_Searches_python_ldap(self, results, searchBase, searchFilter, attributes, scope, server_time_limit, maxSearchResults, maxPageSize, nextTokenStr):
@@ -298,7 +270,7 @@ class LDapServer:
         entries = []
         Pick_up_here = 1
         Parser = 0
-        # Decoding for Server and Server/Client Token Types
+        # Decoding for Server and Client Token Types
         if nextTokenStr != None:
             try:
                 if request.config.Token_type == "Client":
@@ -315,7 +287,6 @@ class LDapServer:
             except:
                 nextTokenStr = nextTokenStr.encode()
                 nextTokenStr = b64decode(nextTokenStr)
-        # nextToken = nextTokenStr.fromhex()
 
         try:
             if searchFilter == None or searchFilter == '':
@@ -327,10 +298,7 @@ class LDapServer:
             request.config.IgnoreWarnings = SidUtils().Convert_Str_to_Bool(ignoreWarnings=request.config.IgnoreWarnings)
             rootDSE = JsonTools().Deserialize(var=self.server.info.to_json())
             request.searchBase = rootDSE['raw']['defaultNamingContext'][0] if request.searchBase == None else request.searchBase
-            # if request.searchBase == None:
-            #     request.searchBase = rootDSE['raw']['defaultNamingContext'][0]
             response.status = StatusCode.Success.name
-            print(attributes)
             if attributes != None:
                 attributes,response = self.CheckAttributes(attributes, response, request.config)
             searchFilter_list = [searchFilter]
@@ -344,7 +312,6 @@ class LDapServer:
                         i['searchBase'] = request.searchBase
                     elif searchBase_flag == True and searchValue_flag == False:
                         i['searchValue'] = searchFilter
-                    # ADD Search Value Generator
                     i['searchValue'] = LdapUtils.CheckforError(request, i['searchValue'], i['searchBase'])
                     searchBase_list.append(i["searchBase"])
                     searchFilter_list.append(i['searchValue'])
@@ -364,10 +331,9 @@ class LDapServer:
                 scope = SUBTREE
                 if searchScope != None and scope != searchScope:
                     scope = searchScope.value
-                # Pick_up_Here is used to determine where the previous search finished, if Pick_up_Here is > 1 that means that the search finished in a 
-                # Multiple Searches Entry
-                # These conditional statements also determine the size_limit for the search
+                # Pick_up_Here is used to determine where the previous search finished, if Pick_up_Here is > 1 that means that the search finished in a Multiple Searches Entry
                 if Pick_up_here > 1:
+                    # These conditional statements also determine the size_limit for the search
                     if nextTokenStr == None:
                         self.conn.search(request.MultipleSearches[Pick_up_here-2]['searchBase'], request.MultipleSearches[Pick_up_here-2]['searchValue'], attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
                         results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
@@ -391,10 +357,16 @@ class LDapServer:
                     else:
                         if request.config.Token_type != "Server":
                             Parser = nextTokenStr
-                            self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults+int(nextTokenStr), paged_size=maxPageSize+int(nextTokenStr), paged_cookie= None)
-                            results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
-                            nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
-                            results[0]['entries'] = results[0]['entries'][int(Parser):]
+                            try:
+                                int_parser = int(Parser)
+                                self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults+int(nextTokenStr), paged_size=maxPageSize, paged_cookie= None)
+                                results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
+                                nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
+                                results[0]['entries'] = results[0]['entries'][int_parser:]
+                            except:
+                                self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie= Parser)
+                                results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
+                                nextTokenStr = self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] if self.conn.result['controls']['1.2.840.113556.1.4.319']['value']['cookie'] else None
                         else:
                             self.conn.search(request.searchBase, searchFilter, attributes=attributes, search_scope=scope, types_only=False, time_limit=options.ServerTimeLimit, size_limit=maxSearchResults, paged_size=maxPageSize, paged_cookie=nextTokenStr)
                             results.append(JsonTools().Deserialize(self.conn.response_to_json(self.conn.result, sort=True)))
@@ -425,7 +397,7 @@ class LDapServer:
                                         nextTokenStr = nextTokenStr if nextTokenStr else struct.pack('10s', bytes("0000", 'utf-8'))
                                     iteration += 1
                                     if nextTokenStr == None and i == len(request.MultipleSearches)-1:
-                                        # No Token is present and index is at the last entry. In other words the searxch is finished
+                                        # No Token is present and index is at the last entry. In other words the search is finished
                                         nextTokenStr = None
                                         break
                                     if nextTokenStr != None:
@@ -444,7 +416,7 @@ class LDapServer:
                             else:
                                 continueToken = f"-0{Pick_up_here+1}"
                 else:
-                    # Searching process for Server/Client Based Token
+                    # Searching process for Client Based Token
                     if request.MultipleSearches != None:
                         iteration = Pick_up_here
                         if nextTokenStr == None:
@@ -482,8 +454,11 @@ class LDapServer:
                                 continueToken = f"-0{Pick_up_here+1}"
                     else:
                         # Union is not present, meaning its just an ordinary search
-                        if nextTokenStr != None:
-                            nextTokenStr = str(currentRecords+int(Parser))
+                        if nextTokenStr != None and currentRecords == maxResults:
+                            try:
+                                nextTokenStr = str(currentRecords+int(Parser))
+                            except:
+                                nextTokenStr = str(currentRecords)
                             continueToken = f"-0{Pick_up_here}"
                 try:
                     for result in results:
@@ -501,8 +476,8 @@ class LDapServer:
                     break
                 if maxSearchResults <= len(entries):
                     break
-                if request.config.Token_type == "Client":
-                    nextTokenStr = None
+                # if request.config.Token_type == "Client":
+                #     nextTokenStr = None
             response = self.ParseResults(entries, response)
             if nextTokenStr != None and len(nextTokenStr) > 0 and type(nextTokenStr) == bytes:
                 nextTokenStr = b64encode(nextTokenStr).decode()
