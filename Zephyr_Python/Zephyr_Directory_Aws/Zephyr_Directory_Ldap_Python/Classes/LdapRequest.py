@@ -132,6 +132,8 @@ class LdapRequest():
         from Zephyr_Directory_Ldap_Python.Ldap_Server import LDapServer
         from Zephyr_Directory_Ldap_Python.Utilities.LdapUtils import LdapUtils 
         from Zephyr_Directory_Ldap_Python.Utilities.DynamoDBTools import DynamoDBTools 
+        
+        # Conditional Statement to help determine if the request is a batch request
         if test_config.batch == True and test_config.retrieval == False:
             response = DynamoDBTools.InvokeLambda(lambdaClient, data)
         elif test_config.batch == False and test_config.retrieval == True:
@@ -146,11 +148,11 @@ class LdapRequest():
                 response = LdapRequest.toJson_Ping_or_Crypto(response)
             else:
                 try:
-                    print("In Try Block:\n")
                     LdapUtils.ApplyDefaultsAndValidate(self)
                     searchstring = LdapUtils.GetSearchString(self)
                     ldap = LDapServer(self.config.server_name, self.config.port, self.config.ssl, self.config.maxRetries, self.config.maxPageSize, self.config.followReferrals, self.config.returnTypes)
                     if self.config.Token_type == "Server" or self.config.Token_type == "Client" or self.config.server_name_present == True:
+                        # Add Entry to DynamoDB
                         if self.config.batch == True and self.config.retrieval == True:
                             partitionKey = data["jobID"]
                             timestamp = data["Timestamp"]
@@ -168,11 +170,13 @@ class LdapRequest():
                 except Exception as e:
                     response = ldap.ReturnError(e, self.config, request=self)
                     if self.config.batch == True and self.config.retrieval == True:
+                        # Add entry to DynamoDB (error)
                         partitionKey = data["jobID"]
                         timestamp = data["Timestamp"]
                         RecordsID = data["recordsID"]
                         DynamoDBTools.add_entry(partitionKey, timestamp, RecordsID)
                 if self.config.batch == True and self.config.retrieval == True:
+                    # Add the Response Records, Messages(if any) to the entry that was added earlier
                     DynamoDBTools.update_entry(response, data)
-            return response
+        return response
                 

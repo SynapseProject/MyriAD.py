@@ -1,8 +1,8 @@
 import base64
+
 from cryptography.hazmat.primitives import hashes, padding
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 class Rijndael:
     _KEYSIZE = 256

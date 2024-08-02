@@ -72,9 +72,9 @@ class DynamoDBTools():
             memory_size = f"{size} bytes"
         elif size < pow(1024,2):
             number = round(size/1024, 2)
-            if number >= 1:
-                 memory_size = DynamoDBTools.decrease_size(records, KB = True)
-            # memory_size =  f"{round(size/1024, 2)} KB"
+            # if number >= 1:
+            #      memory_size = DynamoDBTools.decrease_size(records, KB = True)
+            memory_size =  f"{round(size/1024, 2)} KB"
         elif size < pow(1024,3):
             number = round(size/(pow(1024,2)), 2)
             if number >= 6:
@@ -116,7 +116,8 @@ class DynamoDBTools():
         payload_response = {
             "statusCode": 200,
             "jobID": f"{jobID}",
-            "recordsID": f"{RecordsID}"
+            "recordsID": f"{RecordsID}",
+            "message": "Please save the jobID, this jobID will be needed for the retrieval"
         }
         response = payload_response
         return response
@@ -132,6 +133,9 @@ class DynamoDBTools():
             response = check['Item']
             if response['Completed'] == "Failure":
                 raise Exception(f"Batch Failed with the following error: {response['Message']}")
+            elif response['Completed'] == "In Progress":
+                response = {"message": "Job is still in progress"}
+                return response
             else:
                 dynamoTableName = os.environ['Myriad_Batch_Records_Table']
                 table = dynamodb.Table(dynamoTableName)
@@ -150,13 +154,12 @@ class DynamoDBTools():
                     ExpressionAttributeNames = {'#r': 'Record'}
                     # Limit = request.maxResults
                 )
-                # print(response2)
                 records_list = []
                 for i in response2["Items"]:
                     try:
                         records_list.append({"attributes": i["Record"]["attributes"], "dn": i["Record"]["dn"]})
                     except:
-                        records_list.append({"Attributes": i["Record"]["attributes"], "dn": i["Record"]["DistinguishedName"]})
+                        records_list.append({"Attributes": i["Record"]["Attributes"], "dn": i["Record"]["DistinguishedName"]})
                 # print(records_list)                
                 records = {"records": records_list}
                 if response2["ScannedCount"] < response["TotalRecords"]:
@@ -165,12 +168,11 @@ class DynamoDBTools():
                             records["nextToken"] = response2["ScannedCount"] + request.nextToken
                     else:
                         records["nextToken"] = len(response2['Items'])
-                print(records)
                     
         except Exception as e:
             response = {"message": f"{e}"}
             return response
-        records_size_before = records["records"]
+        records_size_before = len(records["records"])
         records["Size"] = DynamoDBTools.check_size(records["records"])
         if len(records["records"]) != records_size_before:
             records["nextToken"] = len(records["records"])

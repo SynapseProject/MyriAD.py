@@ -301,7 +301,7 @@ class LDapServer:
         # Decoding for Server and Server/Client Token Types
         if nextTokenStr != None:
             try:
-                if request.config.Token_type == "SClient":
+                if request.config.Token_type == "Client":
                     nextTokenStr = b64decode(nextTokenStr).decode()
                 nextTokenStr_Split = nextTokenStr.rsplit("-", 1)
                 nextTokenStr = nextTokenStr_Split[0]

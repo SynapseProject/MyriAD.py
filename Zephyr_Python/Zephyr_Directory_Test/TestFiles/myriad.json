@@ -1,3 +1,8 @@
 {
-	"searchValue": "(sAMAccountName=wagug0)"
+	"searchValue": "(&(objectCategory=user)(memberOf=CN=G AWS Automated Administration,OU=RoleGroups,OU=MOR,OU=rEU,OU=Client,DC=bp1,DC=ad,DC=bp,DC=com))",
+    "maxResults": 1000,
+    "attributes": [],
+    "config": {
+        "TokenType": "Client"
+    }
 }
