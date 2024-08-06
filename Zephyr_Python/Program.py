@@ -8,7 +8,7 @@ from Zephyr_Directory_Ldap_Python.Classes.LdapResponse import LdapResponse
 from Zephyr_Directory_Ldap_Python.Classes.LdapConfig import OutputTypes
 from Zephyr_Directory_Ldap_Python.Utilities.DynamoDBTools import DynamoDBTools
 
-_FILEPATH  = "C:/Users/0195tw/OneDrive - BP/Desktop/Github-MyriAD.py/MyriAD.py/Zephyr_Python/Zephyr_Directory_Test/TestFiles/myriad.json"
+_FILEPATH  = "Insert File Path to the Test File"
 def toJson_Ping_or_Crypto(response: LdapResponse):
     if response.success == True:
         dictionary = {"success": response.success, "message": str(response.message)}

@@ -300,6 +300,7 @@ class LDapServer:
             request.searchBase = rootDSE['raw']['defaultNamingContext'][0] if request.searchBase == None else request.searchBase
             response.status = StatusCode.Success.name
             if attributes != None:
+                # Check for Invalid Attributes
                 attributes,response = self.CheckAttributes(attributes, response, request.config)
             searchFilter_list = [searchFilter]
             searchBase_list = [request.searchBase]
