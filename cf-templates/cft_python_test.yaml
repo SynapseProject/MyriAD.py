@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creates the necessary AWS Components for the MyriAD application.
+Parameters:
+  RequestDynamoDBName:
+    Type: String
+    Description: (Optional) The name for the Requests Dynamo Table for Batch Processing.
+    Default: Myriad_batch_request
+  RecordsDynamoDBName:
+    Type: String
+    Description: (Optional) The name for the Records Dynamo Table for Batch Processing
+    Default: Myriad_batch_records
+  TimeToLive:
+    Type: Number
+    Description: Number of Days the records should live in DynamoBD
+    Default: 5
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: "Batch Processing Configuration (Required)"
+      Parameters:
+      - RequestDynamoDBName
+      - RecordsDynamoDBName
+      - TimeToLive
+Resources: 
+  RecordDynamoDBName:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Ref RecordsDynamoDBName
+      BillingMode: PROVISIONED
+      ProvisionedThroughput: 
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      AttributeDefinitions:
+        - AttributeName: RecordsID
+          AttributeType: S
+        - AttributeName: RecordNumber
+          AttributeType: N
+      KeySchema:
+        - AttributeName: RecordsID
+          KeyType: HASH
+        - AttributeName: RecordNumber
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expireAt
+        Enabled: true
+
+  RequestsDynamoDBName:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Ref RequestDynamoDBName
+      BillingMode: PROVISIONED
+      ProvisionedThroughput: 
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      AttributeDefinitions:
+        - AttributeName: JobID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: JobID
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expireAt
+        Enabled: true
